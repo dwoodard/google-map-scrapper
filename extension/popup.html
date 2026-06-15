@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Maps Scraper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Google Maps Scraper</h1>
+      <div class="toggle-section">
+        <label for="activeToggle">
+          <input type="checkbox" id="activeToggle">
+          <span id="statusIndicator" class="indicator inactive"></span>
+          <span id="statusText">Inactive</span>
+        </label>
+        <span id="captureCount" class="count">0 captured</span>
+      </div>
+    </header>
+
+    <div class="controls">
+      <button id="bulkScrapeBtn" class="btn btn-primary">Scroll & Collect All</button>
+      <button id="clearListBtn" class="btn btn-secondary">Clear List</button>
+    </div>
+
+    <div class="search-info">
+      <span id="searchKeyword">Search: <span class="keyword">-</span></span>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Website</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- rows inserted here -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <p>No results yet. Turn on monitoring and browse Google Maps listings, or click "Scroll & Collect All" to bulk scrape.</p>
+    </div>
+
+    <div class="progress" id="progressContainer" style="display: none;">
+      <div class="progress-text" id="progressText">Scraping...</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <button id="stopScrapeBtn" class="btn btn-secondary">Stop Scraping</button>
+    </div>
+
+    <footer>
+      <button id="downloadJsonBtn" class="btn btn-footer">Download JSON</button>
+      <button id="downloadCsvBtn" class="btn btn-footer">Download CSV</button>
+    </footer>
+  </div>
+
+  <div id="resizeHandle" class="resize-handle"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

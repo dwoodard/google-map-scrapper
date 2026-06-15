@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Google Maps Scraper",
+  "version": "1.0.0",
+  "description": "Scrape business listings from Google Maps search results",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_title": "Google Maps Scraper",
+    "default_popup": "popup.html"
+  },
+  "host_permissions": [
+    "https://www.google.com/maps/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/maps/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,294 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  width: 500px;
+  max-height: 600px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+}
+
+header {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1a73e8;
+}
+
+.toggle-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #1a73e8;
+}
+
+.indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.indicator.active {
+  background: #34a853;
+  box-shadow: 0 0 8px rgba(52, 168, 83, 0.5);
+}
+
+.indicator.inactive {
+  background: #dadce0;
+}
+
+#statusText {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.count {
+  font-size: 13px;
+  color: #666;
+}
+
+.controls {
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #1a73e8;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #1557b0;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3);
+}
+
+.btn-secondary {
+  background: #e8e8e8;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #d0d0d0;
+}
+
+.btn-footer {
+  flex: 1;
+  background: #f5f5f5;
+  color: #1a73e8;
+  border: 1px solid #e0e0e0;
+  font-size: 12px;
+}
+
+.btn-footer:hover {
+  background: #efefef;
+}
+
+.search-info {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #666;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}
+
+.keyword {
+  font-weight: 600;
+  color: #333;
+  font-style: italic;
+}
+
+.table-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+th {
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+tbody tr:hover {
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+tbody tr.full td::after {
+  content: '';
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-full {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-basic {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 32px 16px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.progress {
+  padding: 12px 16px;
+  border-top: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}
+
+.progress-text {
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #1a73e8;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #1a73e8;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+footer {
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #e0e0e0;
+  background: white;
+}
+
+/* Scrollbar styling */
+.table-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Resize handle */
+.resize-handle {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 0%, transparent 50%, #1a73e8 50%, #1a73e8 100%);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.resize-handle:hover {
+  opacity: 1;
+}
+
+body.resizing {
+  user-select: none;
+}
