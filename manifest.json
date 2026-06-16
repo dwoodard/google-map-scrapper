@@ -12,6 +12,8 @@
     "default_title": "Google Maps Scraper",
     "default_popup": "src/popup/index.html"
   },
+  "chrome_url_overrides": {},
+  "web_accessible_resources": [],
   "host_permissions": [
     "https://www.google.com/maps/*"
   ],
