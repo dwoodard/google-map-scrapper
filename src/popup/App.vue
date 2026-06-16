@@ -122,6 +122,9 @@ onMounted(async () => {
   if (tab) {
     messaging.loadCaptured()
   }
+  // Auto-Capture is always on — enable passive listening by default
+  activeToggle.value = true
+  await messaging.activate(true)
 })
 
 function handleToggleActive(active) {
