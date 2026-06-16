@@ -73,6 +73,8 @@
       </div>
 
       <div class="modal-footer">
+        <button class="btn btn-danger" @click="showDeleteConfirm">🗑️ Delete</button>
+        <div class="footer-spacer"></div>
         <button
           v-if="entry.source !== 'bulk'"
           class="btn btn-primary"
@@ -81,7 +83,6 @@
         >
           {{ isRetrying ? 'Fetching...' : '📥 Fetch Data' }}
         </button>
-        <button class="btn btn-danger" @click="showDeleteConfirm">🗑️ Delete</button>
         <button class="btn btn-secondary" @click="close">Close</button>
       </div>
     </div>
@@ -158,7 +159,7 @@ async function retryEnrichment() {
     // Send message to content script to enrich this specific result by Place ID
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tabs[0]) {
-      throw new Error('No active tab found')
+      throw new Error('No active tab found. Make sure you have a tab open.')
     }
 
     console.log(`[Modal] Sending ENRICH_SINGLE to content script...`);
@@ -172,7 +173,7 @@ async function retryEnrichment() {
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('[Modal] Error:', chrome.runtime.lastError);
-          reject(chrome.runtime.lastError);
+          reject(new Error('Content script not available. Please make sure you\'re on a Google Maps page.'));
         } else {
           console.log('[Modal] Content script responded:', response);
           resolve(response);
@@ -205,6 +206,7 @@ async function retryEnrichment() {
       const updated = await new Promise((resolve) => {
         chrome.storage.local.get(['results'], ({ results = [] }) => {
           const found = results.find(r => r.placeId === props.entry.placeId)
+          console.log(`[Modal] Storage lookup - placeId: ${props.entry.placeId}, found:`, found)
           resolve(found)
         })
       })
@@ -221,10 +223,12 @@ async function retryEnrichment() {
         }, 4000)
       } else if (updated) {
         // Still partial
-        console.log(`[Modal] Data still partial:`, updated);
+        console.log(`[Modal] Data still partial - source: ${updated.source}`, updated);
+        const filledFields = [updated.phone, updated.website, updated.address, updated.hours]
+          .filter(f => f && f !== 'N/A').length
         statusMessage.value = {
           type: 'error',
-          text: '⚠️ Listing found but could not extract full data. Try again or refresh the page.'
+          text: `⚠️ Incomplete data (${filledFields}/4 fields). Refresh the Google Maps page and try again.`
         }
       } else {
         statusMessage.value = {
@@ -392,7 +396,12 @@ defineExpose({ open, close })
   border-top: 1px solid #e0e0e0;
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.footer-spacer {
+  flex: 1;
 }
 
 .btn {

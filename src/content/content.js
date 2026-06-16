@@ -372,17 +372,19 @@ async function alreadyHasCompleteData(placeId) {
 
 async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
   console.log(`[Maps Scraper] Attempting to enrich: ${targetName} (${targetPlaceId})`);
+  console.log(`[Maps Scraper] Maps URL: ${mapsUrl}`);
 
   try {
     // Use the Google Maps URL directly if available
     if (mapsUrl && mapsUrl !== 'N/A') {
-      console.log(`[Maps Scraper] 🔗 Using Google Maps URL: ${mapsUrl}`);
+      console.log(`[Maps Scraper] 🔗 Using Google Maps URL to navigate...`);
 
       // Navigate to the place URL
       window.location.href = mapsUrl;
 
-      // Wait for page to load
-      await sleep(5000);
+      // Wait for page to load - use longer timeout to ensure page loads
+      console.log(`[Maps Scraper] ⏳ Waiting 7 seconds for page to load...`);
+      await sleep(7000);
 
       // Extract and merge details
       const fullDetails = extractDetails();
@@ -390,57 +392,72 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
 
       console.log(`[Maps Scraper] 📊 Extracted details from URL:`, {
         name: fullDetails.name,
+        category: fullDetails.category,
         phone: fullDetails.phone,
         website: fullDetails.website,
         address: fullDetails.address,
-        hours: fullDetails.hours
+        hours: fullDetails.hours,
+        placeId: fullDetails.placeId
       });
 
+      console.log(`[Maps Scraper] 💾 Merging entry to storage...`);
       await mergeEntry(fullDetails);
+      console.log(`[Maps Scraper] 📤 Sending enrichment complete message...`);
       sendMessage({ type: 'ENRICHMENT_COMPLETE', entry: fullDetails });
       console.log(`[Maps Scraper] ✅ Single enrichment complete`);
       return;
     }
 
-    // Fallback: Find and click listing if URL not available
-    console.log(`[Maps Scraper] ⏳ Google Maps URL not available, searching for listing...`);
+    // Check if detail panel is already open (user clicked listing manually)
+    let panelContainer = document.querySelector(CONFIG.SELECTORS.panelContainer)
+                      || document.querySelector(CONFIG.SELECTORS.panelContainerAlt);
+    let waitedForPanel = false;
 
-    const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
-    let targetListing = null;
+    if (panelContainer && document.querySelector(CONFIG.SELECTORS.name)) {
+      console.log(`[Maps Scraper] ✅ Detail panel already open, extracting data now...`);
+    } else {
+      // Fallback: Find and click listing if panel not open
+      console.log(`[Maps Scraper] ⏳ Panel not open, searching for listing...`);
 
-    for (const listing of listings) {
-      const placeId = extractPlaceIdFromListing(listing);
-      if (placeId === targetPlaceId) {
-        targetListing = listing;
-        console.log(`[Maps Scraper] ✅ Found listing`);
-        break;
+      const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
+      let targetListing = null;
+
+      for (const listing of listings) {
+        const placeId = extractPlaceIdFromListing(listing);
+        if (placeId === targetPlaceId) {
+          targetListing = listing;
+          console.log(`[Maps Scraper] ✅ Found listing`);
+          break;
+        }
       }
-    }
 
-    if (!targetListing) {
-      console.log(`[Maps Scraper] ❌ Could not find listing with Place ID ${targetPlaceId}`);
-      return;
-    }
-
-    console.log(`[Maps Scraper] 🖱️ Clicking listing to open detail panel...`);
-
-    // Scroll listing into view first
-    targetListing.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    await sleep(500);
-
-    // Click the listing
-    const clickTarget = targetListing.querySelector(CONFIG.SELECTORS.clickTarget) || targetListing;
-    const clickHandler = (e) => {
-      if (clickTarget.tagName === 'A') {
-        e.preventDefault();
+      if (!targetListing) {
+        console.log(`[Maps Scraper] ❌ Could not find listing with Place ID ${targetPlaceId}`);
+        console.log(`[Maps Scraper] 💡 Try clicking the listing manually first, then click Fetch Data again`);
+        return;
       }
-    };
-    clickTarget.addEventListener('click', clickHandler, true);
-    clickTarget.click();
-    clickTarget.removeEventListener('click', clickHandler, true);
 
-    console.log(`[Maps Scraper] ⏳ Waiting for detail panel to load...`);
-    await sleep(5000);
+      console.log(`[Maps Scraper] 🖱️ Clicking listing to open detail panel...`);
+
+      // Scroll listing into view first
+      targetListing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      await sleep(500);
+
+      // Click the listing
+      const clickTarget = targetListing.querySelector(CONFIG.SELECTORS.clickTarget) || targetListing;
+      const clickHandler = (e) => {
+        if (clickTarget.tagName === 'A') {
+          e.preventDefault();
+        }
+      };
+      clickTarget.addEventListener('click', clickHandler, true);
+      clickTarget.click();
+      clickTarget.removeEventListener('click', clickHandler, true);
+
+      console.log(`[Maps Scraper] ⏳ Waiting for detail panel to load...`);
+      await sleep(5000);
+      waitedForPanel = true;
+    }
 
     // Extract and merge details
     const fullDetails = extractDetails();
