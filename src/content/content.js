@@ -344,10 +344,19 @@ async function bulkScrape() {
     console.log(`[Maps Scraper] Found ${total} listings`);
 
     // Phase 2: Click each and extract details
-    for (let i = 0; i < listings.length; i++) {
+    // Get fresh references each iteration to avoid stale DOM references
+    for (let i = 0; i < total; i++) {
       if (!isScraping) break; // allow stop signal
 
-      const listing = listings[i];
+      // Re-query the listing fresh - DOM changes during clicks
+      const freshListings = document.querySelectorAll(CONFIG.SELECTORS.listing);
+      if (i >= freshListings.length) {
+        console.log(`[Maps Scraper] [${i + 1}/${total}] Listing no longer in DOM, skipping`);
+        sendProgress(i + 1, total, null);
+        continue;
+      }
+
+      const listing = freshListings[i];
       const name = listing.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
       const placeId = extractPlaceIdFromListing(listing);
 

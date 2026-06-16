@@ -330,6 +330,11 @@ tbody tr.full td::after {
   color: #155724;
 }
 
+.status-partial {
+  background: #cfe8fc;
+  color: #084298;
+}
+
 .status-basic {
   background: #fff3cd;
   color: #856404;

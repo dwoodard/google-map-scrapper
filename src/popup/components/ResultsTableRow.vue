@@ -50,17 +50,25 @@ const statusBadge = computed(() => {
 
   const completeFields = [hasPhone, hasWebsite, hasAddress, hasHours, hasReviews].filter(Boolean).length
 
-  let statusClass, statusText
+  // Enrichment status: has it been clicked (Phase 2)?
+  const isEnriched = props.entry.source === 'bulk'
+
+  // Data completeness: how many fields are filled?
+  let dataStatus, statusClass
   if (completeFields >= 4) {
+    dataStatus = '✓ Complete'
     statusClass = 'status-full'
-    statusText = '✓ Complete'
   } else if (completeFields >= 2) {
-    statusClass = 'status-basic'
-    statusText = '◐ Partial'
+    dataStatus = '◐ Partial'
+    statusClass = 'status-partial'
   } else {
+    dataStatus = '⏳ Basic'
     statusClass = 'status-basic'
-    statusText = '⏳ Basic'
   }
+
+  // Show enrichment status if not yet enriched
+  const enrichmentBadge = isEnriched ? '' : ' ⌛'
+  const statusText = `${dataStatus}${enrichmentBadge}`
 
   return `<span class="status-badge ${statusClass}">${statusText}</span>`
 })
