@@ -541,6 +541,7 @@ body.resizing {
   font-size: 13px;
   font-weight: 500;
   animation: slideDown 0.3s ease-out;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.3);
 }
 
 @keyframes slideDown {
@@ -578,7 +579,45 @@ body.resizing {
   margin-bottom: 4px;
 }
 
-.scraping-progress {
+.scraping-details {
   font-size: 12px;
-  opacity: 0.9;
+  opacity: 0.95;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-count {
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.results-count {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.enrichment-status {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+}
+
+.separator {
+  opacity: 0.6;
+  margin: 0 2px;
+}
+
+.enrichment-bar {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.enrichment-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }

@@ -12,7 +12,19 @@
       <div class="scraping-spinner">⟳</div>
       <div class="scraping-text">
         <div class="scraping-title">Scraping in progress...</div>
-        <div class="scraping-progress">{{ progress.done }} / {{ progress.total }}</div>
+        <div class="scraping-details">
+          <span class="progress-count">{{ progress.done }} / {{ progress.total }}</span>
+          <span class="separator">•</span>
+          <span class="results-count">{{ scrapingStats.total }} results</span>
+          <span class="separator">•</span>
+          <span class="enrichment-status">{{ scrapingStats.status }}</span>
+        </div>
+      </div>
+      <div class="enrichment-bar">
+        <div
+          class="enrichment-fill"
+          :style="{ width: scrapingStats.enrichmentPercent + '%' }"
+        ></div>
       </div>
     </div>
 
@@ -107,6 +119,21 @@ const messaging = useContentMessaging(
 )
 
 const { isScraping, progress } = messaging
+
+const scrapingStats = computed(() => {
+  const total = results.value.length
+  const enriched = results.value.filter(r => r.source === 'bulk').length
+  const pending = results.value.filter(r => r.source === 'partial').length
+  const enrichmentPercent = total > 0 ? Math.round((enriched / total) * 100) : 0
+
+  return {
+    total,
+    enriched,
+    pending,
+    enrichmentPercent,
+    status: pending > 0 ? `${enriched}/${total} enriched` : `${total} total`
+  }
+})
 
 const clearModalTitle = computed(() => {
   if (!pendingClear.value) return ''
