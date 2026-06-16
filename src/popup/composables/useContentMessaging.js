@@ -41,6 +41,7 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
         isScraping.value = true
         const { done, total, entry } = message
         progress.value = { done, total }
+        console.log(`[Popup] 📥 Received: ${done}/${total} - ${entry?.name || 'N/A'}`)
 
         if (entry) {
           if (onProgressCallback) {
@@ -53,6 +54,7 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
       } else if (message.type === 'SCRAPE_DONE') {
         isScraping.value = false
         progress.value = { done: 0, total: 0 }
+        console.log(`[Popup] ✅ Scrape completed`)
       }
     }
 

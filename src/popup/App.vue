@@ -85,6 +85,7 @@ const messaging = useContentMessaging(
       })
       if (!exists) {
         results.value.push(entry)
+        console.log(`[App] ✅ Added to UI: ${entry.name} (${entry.source})`)
       }
     }
   },
@@ -92,6 +93,7 @@ const messaging = useContentMessaging(
     // Persist new entry to storage immediately
     if (entry) {
       await storage.setAll([...results.value])
+      console.log(`[App] 💾 Saved to storage: ${entry.name}`)
     }
   }
 )

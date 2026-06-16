@@ -510,6 +510,7 @@ function sendMessage(message) {
 }
 
 function sendProgress(done, total, entry) {
+  console.log(`[Maps Scraper] 📤 Sending progress: ${done}/${total} - ${entry?.name || 'N/A'}`);
   sendMessage({
     type: 'PROGRESS',
     done,
