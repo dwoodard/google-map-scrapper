@@ -167,7 +167,12 @@ function handleToggleActive(active) {
 }
 
 async function handleBulkScrape(options = {}) {
-  await messaging.bulkScrape(options)
+  // Show immediate visual feedback before async message
+  messaging.isScraping.value = true
+  messaging.progress.value = { done: 0, total: 0 }
+
+  // Then send the message (don't await so UI updates immediately)
+  messaging.bulkScrape(options)
 }
 
 async function handleStopScrape() {
