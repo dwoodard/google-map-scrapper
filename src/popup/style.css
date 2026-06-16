@@ -482,23 +482,26 @@ footer {
 /* Scrollbar styling */
 .table-wrapper::-webkit-scrollbar,
 .keywords-list::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .table-wrapper::-webkit-scrollbar-track,
 .keywords-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 
 .table-wrapper::-webkit-scrollbar-thumb,
 .keywords-list::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
+  background: #999;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .table-wrapper::-webkit-scrollbar-thumb:hover,
 .keywords-list::-webkit-scrollbar-thumb:hover {
   background: #555;
+  background-clip: content-box;
 }
 
 /* Resize handle */
