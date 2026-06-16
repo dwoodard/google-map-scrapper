@@ -5,7 +5,6 @@
       :total="results.length"
       :results="results"
       @toggle-active="handleToggleActive"
-      @clean-duplicates="handleCleanDuplicates"
     />
 
     <ScrapeControls
@@ -170,13 +169,5 @@ async function handleConfirmClear() {
 
 async function handleSavePopupSize(size) {
   await storage.savePopupSize(size)
-}
-
-async function handleCleanDuplicates() {
-  const removed = await storage.cleanDuplicates()
-  if (removed > 0) {
-    // Reload to show updated count
-    await storage.load()
-  }
 }
 </script>

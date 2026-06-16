@@ -41,29 +41,6 @@ export function useChromeStorage() {
     })
   }
 
-  function cleanDuplicates() {
-    return new Promise(resolve => {
-      const seen = new Map()
-
-      results.value.forEach(entry => {
-        const placeId = entry.placeId || `unknown-${entry.name}`
-
-        if (!seen.has(placeId)) {
-          seen.set(placeId, entry)
-        } else {
-          const existing = seen.get(placeId)
-          // Keep the more recent one
-          if (new Date(entry.capturedAt) > new Date(existing.capturedAt)) {
-            seen.set(placeId, entry)
-          }
-        }
-      })
-
-      const cleaned = Array.from(seen.values())
-      return setAll(cleaned).then(() => resolve(results.value.length - cleaned.length))
-    })
-  }
-
   return {
     results,
     popupSize,
@@ -71,7 +48,6 @@ export function useChromeStorage() {
     setAll,
     clearKeyword,
     clearAll,
-    savePopupSize,
-    cleanDuplicates
+    savePopupSize
   }
 }
