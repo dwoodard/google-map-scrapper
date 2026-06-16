@@ -113,52 +113,76 @@ function close() {
 async function retryEnrichment() {
   isRetrying.value = true
   statusMessage.value = null
+  console.log(`[Modal] Fetching data for: ${props.entry.name} (${props.entry.placeId})`);
+
   try {
     // Send message to content script to enrich this specific result by Place ID
-    await chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: 'ENRICH_SINGLE',
-          placeId: props.entry.placeId,
-          name: props.entry.name
-        }, () => {
-          // ignore errors
-        })
-      }
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tabs[0]) {
+      throw new Error('No active tab found')
+    }
+
+    console.log(`[Modal] Sending ENRICH_SINGLE to content script...`);
+
+    await new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: 'ENRICH_SINGLE',
+        placeId: props.entry.placeId,
+        name: props.entry.name
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Modal] Error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else {
+          console.log('[Modal] Content script responded:', response);
+          resolve(response);
+        }
+      })
     })
 
-    // Wait a moment for enrichment to complete
-    await new Promise(r => setTimeout(r, 8000))
+    // Wait longer for enrichment to complete (clicking + extraction)
+    console.log(`[Modal] Waiting for enrichment to complete...`);
+    await new Promise(r => setTimeout(r, 10000))
 
     // Refresh the entry from storage
+    console.log(`[Modal] Fetching updated data from storage...`);
     const updated = await new Promise((resolve) => {
       chrome.storage.local.get(['results'], ({ results = [] }) => {
         const found = results.find(r => r.placeId === props.entry.placeId)
+        console.log(`[Modal] Found in storage:`, found);
         resolve(found)
       })
     })
 
-    if (updated) {
+    if (updated && updated.source === 'bulk') {
+      // Successfully enriched - update all fields
+      console.log(`[Modal] Data updated successfully`);
       Object.assign(props.entry, updated)
       statusMessage.value = {
         type: 'success',
         text: '✅ Data fetched successfully!'
       }
-      // Auto-clear message after 3 seconds
       setTimeout(() => {
         statusMessage.value = null
-      }, 3000)
+      }, 4000)
+    } else if (updated) {
+      // Still partial
+      console.log(`[Modal] Data still partial:`, updated);
+      statusMessage.value = {
+        type: 'error',
+        text: '⚠️ Listing found but could not extract full data. Try again or refresh the page.'
+      }
     } else {
       statusMessage.value = {
         type: 'error',
-        text: '❌ Could not fetch data. Make sure you\'re on the Google Maps search page.'
+        text: '❌ Could not find listing. Make sure you\'re on the correct Google Maps search page and the listing is visible.'
       }
     }
   } catch (err) {
-    console.error('Error fetching enrichment:', err)
+    console.error('[Modal] Error fetching enrichment:', err)
     statusMessage.value = {
       type: 'error',
-      text: '❌ Error fetching data. Check console.'
+      text: `❌ Error: ${err.message || 'Check console for details'}`
     }
   } finally {
     isRetrying.value = false
