@@ -21,7 +21,8 @@ import { downloadJSON, downloadCSV } from '../utils/download.js'
 const isOpen = ref(false)
 
 const props = defineProps({
-  results: Array
+  results: Array,
+  keyword: String
 })
 
 function toggleDropdown() {
@@ -33,12 +34,12 @@ function closeDropdown() {
 }
 
 function onDownloadJSON() {
-  downloadJSON(props.results)
+  downloadJSON(props.results, props.keyword)
   closeDropdown()
 }
 
 function onDownloadCSV() {
-  downloadCSV(props.results)
+  downloadCSV(props.results, props.keyword)
   closeDropdown()
 }
 

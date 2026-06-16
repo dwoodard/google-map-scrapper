@@ -5,7 +5,7 @@
       <div class="header-buttons">
         <button v-if="!isSidePanel" class="btn-header" @click="openSidePanel" title="Open side panel for persistent view">📍 Side Panel</button>
         <DataManager @clean-done="$emit('clean-done')" />
-        <ExportDropdown :results="results" />
+        <ExportDropdown :results="results" :keyword="selectedKeyword" />
       </div>
     </div>
     <div class="toggle-section">
@@ -31,7 +31,8 @@ defineProps({
   active: Boolean,
   total: Number,
   results: Array,
-  isSidePanel: Boolean
+  isSidePanel: Boolean,
+  selectedKeyword: String
 })
 
 defineEmits(['toggle-active', 'clean-done'])

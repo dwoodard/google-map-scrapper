@@ -5,6 +5,7 @@
       :total="results.length"
       :results="results"
       :is-side-panel="isSidePanel"
+      :selected-keyword="selectedKeyword"
       @toggle-active="handleToggleActive"
       @clean-done="handleCleanDone"
     />

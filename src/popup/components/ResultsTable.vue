@@ -45,10 +45,18 @@
       <table id="resultsTable">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Website</th>
-            <th>Status</th>
+            <th class="sortable" @click="toggleSort('name')">
+              Name <span v-if="sortColumn === 'name'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
+            <th class="sortable" @click="toggleSort('phone')">
+              Phone <span v-if="sortColumn === 'phone'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
+            <th class="sortable" @click="toggleSort('website')">
+              Website <span v-if="sortColumn === 'website'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
+            <th class="sortable" @click="toggleSort('status')">
+              Status <span v-if="sortColumn === 'status'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
           </tr>
         </thead>
         <tbody id="tableBody" ref="tableBody">
@@ -67,6 +75,7 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
 import ResultsTableRow from './ResultsTableRow.vue'
+import { fuzzyFilter } from '../utils/fuzzySearch.js'
 
 const tableBody = ref(null)
 
@@ -86,20 +95,28 @@ const tableData = computed(() => {
 
 const searchQuery = ref('')
 const lastUpdatedId = ref(null)
+const sortColumn = ref('name')
+const sortDirection = ref('asc')
 
 const filteredTableData = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return tableData.value
-  }
+  const filtered = fuzzyFilter(tableData.value, searchQuery.value, [
+    'name',
+    'phone',
+    'website',
+    'address',
+    'source',
+    'reviews'
+  ])
 
-  const query = searchQuery.value.toLowerCase()
-  return tableData.value.filter(entry => {
-    return (
-      entry.name.toLowerCase().includes(query) ||
-      (entry.phone && entry.phone.toLowerCase().includes(query)) ||
-      (entry.website && entry.website.toLowerCase().includes(query)) ||
-      (entry.address && entry.address.toLowerCase().includes(query))
-    )
+  return [...filtered].sort((a, b) => {
+    const aVal = String(a[sortColumn.value] || '').toLowerCase()
+    const bVal = String(b[sortColumn.value] || '').toLowerCase()
+
+    let comparison = 0
+    if (aVal < bVal) comparison = -1
+    else if (aVal > bVal) comparison = 1
+
+    return sortDirection.value === 'asc' ? comparison : -comparison
   })
 })
 
@@ -161,6 +178,15 @@ watch(filteredTableData, async (newData, oldData) => {
     }
   }
 })
+
+function toggleSort(column) {
+  if (sortColumn.value === column) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortColumn.value = column
+    sortDirection.value = 'asc'
+  }
+}
 
 function handleDelete(entry) {
   emit('delete', entry)
