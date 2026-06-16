@@ -1,6 +1,6 @@
 <template>
-  <div class="export-dropdown">
-    <button class="export-btn" @click="isOpen = !isOpen" title="Export results">
+  <div class="export-dropdown" @click.stop @mouseleave="closeDropdown">
+    <button class="export-btn" @click="toggleDropdown" title="Export results">
       ⬇️ Export
     </button>
     <div v-if="isOpen" class="dropdown-menu">
@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { downloadJSON, downloadCSV } from '../utils/download.js'
 
 const isOpen = ref(false)
@@ -24,15 +24,39 @@ const props = defineProps({
   results: Array
 })
 
+function toggleDropdown() {
+  isOpen.value = !isOpen.value
+}
+
+function closeDropdown() {
+  isOpen.value = false
+}
+
 function onDownloadJSON() {
   downloadJSON(props.results)
-  isOpen.value = false
+  closeDropdown()
 }
 
 function onDownloadCSV() {
   downloadCSV(props.results)
-  isOpen.value = false
+  closeDropdown()
 }
+
+// Close dropdown when clicking outside
+function handleClickOutside(e) {
+  const dropdown = document.querySelector('.export-dropdown')
+  if (dropdown && !dropdown.contains(e.target)) {
+    closeDropdown()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
