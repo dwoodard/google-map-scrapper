@@ -76,9 +76,16 @@ const keywordGroups = useKeywordGroups(results)
 
 const messaging = useContentMessaging(
   (entry) => {
-    // Push entry to in-memory results for instant UI update
+    // Check for duplicate by Place ID before adding to avoid duplicates in UI
     if (entry) {
-      results.value.push(entry)
+      const placeId = entry.placeId || `unknown-${entry.name}`
+      const exists = results.value.some(r => {
+        const rPlaceId = r.placeId || `unknown-${r.name}`
+        return rPlaceId === placeId
+      })
+      if (!exists) {
+        results.value.push(entry)
+      }
     }
   },
   async (entry) => {
