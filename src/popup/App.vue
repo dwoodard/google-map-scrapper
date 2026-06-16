@@ -11,7 +11,6 @@
     <ScrapeControls
       :isScraping="isScraping"
       @bulk-scrape="handleBulkScrape"
-      @request-clear-all="showClearAllModal"
     />
 
     <div class="content">
@@ -101,26 +100,17 @@ const { isScraping, progress } = messaging
 
 const clearModalTitle = computed(() => {
   if (!pendingClear.value) return ''
-  if (pendingClear.value.type === 'keyword') {
-    return `Clear results for "${pendingClear.value.keyword}"?`
-  }
-  return 'Clear All Keywords?'
+  return `Clear results for "${pendingClear.value.keyword}"?`
 })
 
 const clearModalMessage = computed(() => {
   if (!pendingClear.value) return ''
-  if (pendingClear.value.type === 'keyword') {
-    const count = keywordGroups.value[pendingClear.value.keyword]?.length || 0
-    return `This will permanently delete ${count} result${count !== 1 ? 's' : ''} for this search term.`
-  }
-  const total = results.value.length
-  const keywords = Object.keys(keywordGroups.value).length
-  return `This will permanently delete ${total} result${total !== 1 ? 's' : ''} across ${keywords} search term${keywords !== 1 ? 's' : ''}.`
+  const count = keywordGroups.value[pendingClear.value.keyword]?.length || 0
+  return `This will permanently delete ${count} result${count !== 1 ? 's' : ''} for this search term.`
 })
 
 const clearConfirmLabel = computed(() => {
-  if (!pendingClear.value) return 'Confirm'
-  return pendingClear.value.type === 'keyword' ? 'Clear Keyword' : 'Clear All'
+  return 'Clear Keyword'
 })
 
 onMounted(async () => {
@@ -155,20 +145,11 @@ function showClearKeywordModal(keyword) {
   pendingClear.value = { type: 'keyword', keyword }
 }
 
-function showClearAllModal() {
-  pendingClear.value = { type: 'all' }
-}
-
 async function handleConfirmClear() {
   if (!pendingClear.value) return
 
-  if (pendingClear.value.type === 'keyword') {
-    await storage.clearKeyword(pendingClear.value.keyword)
-    if (selectedKeyword.value === pendingClear.value.keyword) {
-      selectedKeyword.value = null
-    }
-  } else {
-    await storage.clearAll()
+  await storage.clearKeyword(pendingClear.value.keyword)
+  if (selectedKeyword.value === pendingClear.value.keyword) {
     selectedKeyword.value = null
   }
 

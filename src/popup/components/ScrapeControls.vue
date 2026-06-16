@@ -8,13 +8,6 @@
     >
       Scroll & Collect
     </button>
-    <button
-      id="clearListBtn"
-      class="btn btn-danger"
-      @click="$emit('request-clear-all')"
-    >
-      Clear All Keywords
-    </button>
   </div>
 </template>
 
@@ -23,5 +16,5 @@ defineProps({
   isScraping: Boolean
 })
 
-defineEmits(['bulk-scrape', 'request-clear-all'])
+defineEmits(['bulk-scrape'])
 </script>
