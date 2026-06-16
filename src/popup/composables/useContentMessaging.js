@@ -23,8 +23,11 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
     return sendToContentScript({ type: 'ACTIVATE', active })
   }
 
-  function bulkScrape() {
-    return sendToContentScript({ type: 'BULK_SCRAPE' })
+  function bulkScrape(options = {}) {
+    return sendToContentScript({
+      type: 'BULK_SCRAPE',
+      scrollToBottom: options.scrollToBottom !== false  // default true
+    })
   }
 
   function stopScrape() {

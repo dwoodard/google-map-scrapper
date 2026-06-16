@@ -131,8 +131,8 @@ function handleToggleActive(active) {
   messaging.activate(active)
 }
 
-async function handleBulkScrape() {
-  await messaging.bulkScrape()
+async function handleBulkScrape(options = {}) {
+  await messaging.bulkScrape(options)
 }
 
 async function handleStopScrape() {

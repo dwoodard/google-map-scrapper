@@ -42,6 +42,7 @@ let panelObserver = null;
 let debounceTimer = null;
 let capturedNames = new Set(); // dedupe check
 let currentSessionKeyword = 'unknown'; // persist keyword across entire scrape session
+let shouldScrollToBottom = true; // toggle for scroll behavior
 
 // ============================================================================
 // Utilities
@@ -53,13 +54,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function extractKeyword() {
   const url = window.location.href;
 
+  // Try to extract search query from data parameter (e.g., "!1srock+landscaping+Davis+County!")
+  // This handles when you're on a place detail page but searching for something
+  const dataMatch = url.match(/!1s([^!]+)!/);
+  if (dataMatch) {
+    return decodeURIComponent(dataMatch[1].replace(/\+/g, ' '));
+  }
+
   // Try to extract from /search/ path (e.g., "/maps/search/rock+landscaping+Davis+County/@35...")
   const searchMatch = url.match(/\/maps\/search\/([^/@]+)/);
   if (searchMatch) {
     return decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
   }
 
-  // Try to extract from /place/ path (fallback, shouldn't happen on search page)
+  // Try to extract from /place/ path (only if no search query found)
   const placeMatch = url.match(/\/maps\/place\/([^/@]+)/);
   if (placeMatch) {
     return decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
@@ -329,10 +337,12 @@ async function alreadyHasCompleteData(placeId) {
   });
 }
 
-async function bulkScrape() {
+async function bulkScrape(options = {}) {
   isScraping = true;
+  shouldScrollToBottom = options.scrollToBottom !== false;
   currentSessionKeyword = extractKeyword(); // Capture keyword ONCE at start
   console.log(`[Maps Scraper] Starting bulk scrape for keyword: "${currentSessionKeyword}"`);
+  console.log(`[Maps Scraper] Scroll to bottom: ${shouldScrollToBottom}`);
 
   // Load already-captured names from storage to avoid clicking duplicates
   await loadCapturedNames();
@@ -462,8 +472,15 @@ async function phase1ScrollCollect() {
     }
 
     prevCount = count;
-    feed.scrollTop = feed.scrollHeight;
-    await sleep(rand(CONFIG.SCROLL_DELAY_MIN_MS, CONFIG.SCROLL_DELAY_MAX_MS));
+
+    // Only scroll if shouldScrollToBottom is enabled
+    if (shouldScrollToBottom) {
+      feed.scrollTop = feed.scrollHeight;
+      await sleep(rand(CONFIG.SCROLL_DELAY_MIN_MS, CONFIG.SCROLL_DELAY_MAX_MS));
+    } else {
+      // Just a small delay to let content load without scrolling
+      await sleep(rand(CONFIG.SCROLL_DELAY_MIN_MS / 2, CONFIG.SCROLL_DELAY_MAX_MS / 2));
+    }
   }
 
   return Array.from(document.querySelectorAll(CONFIG.SELECTORS.listing));
@@ -546,7 +563,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ success: true });
   } else if (message.type === 'BULK_SCRAPE') {
     if (!isScraping) {
-      bulkScrape().catch(err => console.error(err));
+      bulkScrape({ scrollToBottom: message.scrollToBottom }).catch(err => console.error(err));
     }
     sendResponse({ success: true });
   } else if (message.type === 'STOP_SCRAPE') {
