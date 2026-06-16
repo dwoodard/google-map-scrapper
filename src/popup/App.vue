@@ -8,6 +8,14 @@
       @clean-done="handleCleanDone"
     />
 
+    <div v-if="isScraping" class="scraping-banner">
+      <div class="scraping-spinner">⟳</div>
+      <div class="scraping-text">
+        <div class="scraping-title">Scraping in progress...</div>
+        <div class="scraping-progress">{{ progress.done }} / {{ progress.total }}</div>
+      </div>
+    </div>
+
     <ScrapeControls
       :isScraping="isScraping"
       @bulk-scrape="handleBulkScrape"
