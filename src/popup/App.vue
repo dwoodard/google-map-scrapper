@@ -4,6 +4,7 @@
       :active="activeToggle"
       :total="results.length"
       :results="results"
+      :is-side-panel="isSidePanel"
       @toggle-active="handleToggleActive"
       @clean-done="handleCleanDone"
     />
@@ -51,7 +52,6 @@
       <ResultsTable
         :selected-keyword="selectedKeyword"
         :keyword-groups="keywordGroups"
-        @back="selectedKeyword = null"
       />
     </div>
 
@@ -138,9 +138,14 @@ const messaging = useContentMessaging(
 const { isScraping, progress } = messaging
 
 const scrapingStats = computed(() => {
-  const total = results.value.length
-  const enriched = results.value.filter(r => r.source === 'bulk').length
-  const pending = results.value.filter(r => r.source === 'partial').length
+  // Show stats for current keyword only if selected, otherwise all
+  const filtered = selectedKeyword.value
+    ? (keywordGroups.value[selectedKeyword.value] || [])
+    : results.value
+
+  const total = filtered.length
+  const enriched = filtered.filter(r => r.source === 'bulk').length
+  const pending = filtered.filter(r => r.source === 'partial').length
   const enrichmentPercent = total > 0 ? Math.round((enriched / total) * 100) : 0
 
   return {
@@ -165,6 +170,10 @@ const clearModalMessage = computed(() => {
 
 const clearConfirmLabel = computed(() => {
   return 'Clear Keyword'
+})
+
+const isSidePanel = computed(() => {
+  return window.location.pathname.includes('side-panel')
 })
 
 onMounted(async () => {

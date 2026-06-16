@@ -3,7 +3,7 @@
     <div class="header-top">
       <h1>Google Maps Scraper</h1>
       <div class="header-buttons">
-        <button class="btn-header" @click="openSidePanel" title="Open side panel for persistent view">📍 Side Panel</button>
+        <button v-if="!isSidePanel" class="btn-header" @click="openSidePanel" title="Open side panel for persistent view">📍 Side Panel</button>
         <DataManager @clean-done="$emit('clean-done')" />
         <ExportDropdown :results="results" />
       </div>
@@ -30,7 +30,8 @@ import DataManager from './DataManager.vue'
 defineProps({
   active: Boolean,
   total: Number,
-  results: Array
+  results: Array,
+  isSidePanel: Boolean
 })
 
 defineEmits(['toggle-active', 'clean-done'])

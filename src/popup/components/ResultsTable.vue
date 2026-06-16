@@ -1,8 +1,10 @@
 <template>
   <div class="right-panel">
     <div class="panel-header">
-      <button v-if="selectedKeyword" class="back-btn" @click="$emit('back')" title="Back to keywords">← Back</button>
       <h3 id="selectedKeywordTitle">{{ selectedKeyword ? `🔍 "${selectedKeyword}"` : 'Select a keyword →' }}</h3>
+      <a v-if="selectedKeyword" :href="googleMapsUrl" target="_blank" class="maps-link" title="Open in Google Maps">
+        🗺️ Maps
+      </a>
     </div>
 
     <div v-if="isEmpty" class="empty-state">
@@ -72,8 +74,6 @@ const props = defineProps({
   keywordGroups: Object
 })
 
-defineEmits(['back'])
-
 const tableData = computed(() => {
   if (!props.selectedKeyword || !props.keywordGroups[props.selectedKeyword]) {
     return []
@@ -118,6 +118,12 @@ const isEmpty = computed(() => {
   return !props.selectedKeyword || tableData.value.length === 0
 })
 
+const googleMapsUrl = computed(() => {
+  if (!props.selectedKeyword) return ''
+  const encoded = encodeURIComponent(props.selectedKeyword)
+  return `https://www.google.com/maps/search/${encoded}`
+})
+
 // Auto-scroll to newly enriched result
 watch(filteredTableData, async (newData, oldData) => {
   await nextTick()
@@ -155,21 +161,20 @@ watch(filteredTableData, async (newData, oldData) => {
 </script>
 
 <style scoped>
-.back-btn {
+.maps-link {
+  display: inline-block;
   padding: 4px 8px;
-  margin-right: 8px;
-  border: none;
-  background: none;
   color: #1a73e8;
-  cursor: pointer;
+  text-decoration: none;
   font-size: 12px;
   font-weight: 500;
   transition: all 0.2s;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
-.back-btn:hover {
+.maps-link:hover {
   color: #1557b0;
   background: rgba(26, 115, 232, 0.05);
-  border-radius: 4px;
 }
 </style>
