@@ -144,6 +144,16 @@ function extractPriceRange() {
 
 function extractDetails() {
   const name = document.querySelector(CONFIG.SELECTORS.name)?.innerText?.trim() || 'N/A';
+
+  // Check if listing is sponsored
+  const panelContainer = document.querySelector(CONFIG.SELECTORS.panelContainer)
+                      || document.querySelector(CONFIG.SELECTORS.panelContainerAlt);
+  let isSponsored = false;
+  if (panelContainer) {
+    const sponsoredBadge = panelContainer.innerText?.toLowerCase().includes('sponsored');
+    isSponsored = sponsoredBadge || false;
+  }
+
   const category = document.querySelector(CONFIG.SELECTORS.category)?.innerText?.trim() || 'N/A';
   const rating = document.querySelector(CONFIG.SELECTORS.rating)?.innerText?.trim() || 'N/A';
 
@@ -205,6 +215,7 @@ function extractDetails() {
     longitude: coords.longitude,
     placeId,
     mapsUrl,
+    isSponsored,
     keyword: currentSessionKeyword, // Use session keyword, not re-extracted
     capturedAt: new Date().toISOString(),
     source: 'unknown'
@@ -250,6 +261,7 @@ function extractPartialListing(listingEl) {
     latitude: 'N/A',
     longitude: 'N/A',
     mapsUrl: 'N/A',
+    isSponsored: false, // Can't detect from listing preview
     keyword: currentSessionKeyword,
     capturedAt: new Date().toISOString(),
     source: 'partial'
