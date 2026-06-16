@@ -1,6 +1,7 @@
 <template>
   <div class="right-panel">
     <div class="panel-header">
+      <button v-if="selectedKeyword" class="back-btn" @click="$emit('back')" title="Back to keywords">← Back</button>
       <h3 id="selectedKeywordTitle">{{ selectedKeyword ? `🔍 "${selectedKeyword}"` : 'Select a keyword →' }}</h3>
     </div>
 
@@ -70,6 +71,8 @@ const props = defineProps({
   selectedKeyword: String,
   keywordGroups: Object
 })
+
+defineEmits(['back'])
 
 const tableData = computed(() => {
   if (!props.selectedKeyword || !props.keywordGroups[props.selectedKeyword]) {
@@ -150,3 +153,23 @@ watch(filteredTableData, async (newData, oldData) => {
   }
 })
 </script>
+
+<style scoped>
+.back-btn {
+  padding: 4px 8px;
+  margin-right: 8px;
+  border: none;
+  background: none;
+  color: #1a73e8;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  color: #1557b0;
+  background: rgba(26, 115, 232, 0.05);
+  border-radius: 4px;
+}
+</style>

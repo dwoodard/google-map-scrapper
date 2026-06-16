@@ -117,7 +117,6 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   min-width: 120px;
-  max-width: 200px;
   transition: width 0.1s ease;
 }
 

@@ -6,11 +6,15 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "sidePanel"
   ],
   "action": {
     "default_title": "Google Maps Scraper",
     "default_popup": "src/popup/index.html"
+  },
+  "side_panel": {
+    "default_path": "src/side-panel/index.html"
   },
   "chrome_url_overrides": {},
   "web_accessible_resources": [],

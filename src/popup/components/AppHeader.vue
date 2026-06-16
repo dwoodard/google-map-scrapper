@@ -3,6 +3,7 @@
     <div class="header-top">
       <h1>Google Maps Scraper</h1>
       <div class="header-buttons">
+        <button class="btn-header" @click="openSidePanel" title="Open side panel for persistent view">📍 Side Panel</button>
         <DataManager @clean-done="$emit('clean-done')" />
         <ExportDropdown :results="results" />
       </div>
@@ -33,6 +34,17 @@ defineProps({
 })
 
 defineEmits(['toggle-active', 'clean-done'])
+
+async function openSidePanel() {
+  try {
+    const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
+    if (tab) {
+      await chrome.sidePanel.open({ tabId: tab.id })
+    }
+  } catch (err) {
+    console.error('[Header] Error opening side panel:', err)
+  }
+}
 </script>
 
 <style scoped>
@@ -51,5 +63,27 @@ h1 {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.btn-header {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #1a73e8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-header:hover {
+  background: #f0f7ff;
+  border-color: #1a73e8;
+  box-shadow: 0 2px 4px rgba(26, 115, 232, 0.15);
+}
+
+.btn-header:active {
+  background: #e8f0ff;
 }
 </style>

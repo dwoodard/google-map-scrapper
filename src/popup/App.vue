@@ -51,6 +51,7 @@
       <ResultsTable
         :selected-keyword="selectedKeyword"
         :keyword-groups="keywordGroups"
+        @back="selectedKeyword = null"
       />
     </div>
 
@@ -230,7 +231,7 @@ function startPanelResize(e) {
 
     const deltaX = moveEvent.clientX - startX
     const containerWidth = container.offsetWidth
-    const newLeftWidth = Math.max(25, Math.min(75, 40 + (deltaX / containerWidth) * 100))
+    const newLeftWidth = Math.max(25, Math.min(75, leftPanelWidth.value + (deltaX / containerWidth) * 100))
 
     leftPanelWidth.value = newLeftWidth
     container.style.setProperty('--left-panel-width', newLeftWidth + '%')
@@ -247,10 +248,21 @@ function startPanelResize(e) {
   document.body.classList.add('resizing-panel')
 }
 
-onMounted(() => {
-  // ... existing onMounted code ...
+onMounted(async () => {
+  await storage.load()
+  const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
+  if (tab) {
+    messaging.loadCaptured()
+  }
+  // Auto-Capture is always on — enable passive listening by default
+  activeToggle.value = true
+  await messaging.activate(true)
+
+  // Initialize panel width
   if (contentArea.value) {
     contentArea.value.style.setProperty('--left-panel-width', leftPanelWidth.value + '%')
+    // Reset scrollTop to prevent content from being pushed out of view
+    contentArea.value.scrollTop = 0
   }
 })
 
