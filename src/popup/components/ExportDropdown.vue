@@ -1,5 +1,5 @@
 <template>
-  <div class="export-dropdown" @click.stop @mouseleave="closeDropdown">
+  <div class="export-dropdown" @click.stop>
     <button class="export-btn" @click="toggleDropdown" title="Export results">
       ⬇️ Export
     </button>
