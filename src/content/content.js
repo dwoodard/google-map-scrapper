@@ -51,16 +51,28 @@ const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function extractKeyword() {
-  // Try to get keyword from URL or page title
-  const url = new URL(window.location.href);
-  const params = new URLSearchParams(url.search);
-  const keyword = params.get('query') || params.get('q');
-  if (keyword) return keyword;
+  const url = window.location.href;
 
-  // Fallback: extract from page title (e.g., "xeriscape - Google Maps")
+  // Try to extract from /search/ path (e.g., "/maps/search/rock+landscaping+Davis+County/@35...")
+  const searchMatch = url.match(/\/maps\/search\/([^/@]+)/);
+  if (searchMatch) {
+    return decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
+  }
+
+  // Try to extract from /place/ path (fallback, shouldn't happen on search page)
+  const placeMatch = url.match(/\/maps\/place\/([^/@]+)/);
+  if (placeMatch) {
+    return decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
+  }
+
+  // Fallback: extract from page title (e.g., "rock landscaping Davis County - Google Maps")
   const title = document.title;
-  const match = title.match(/^([^-]+)\s*-\s*Google Maps/);
-  return match ? match[1].trim() : 'unknown';
+  const titleMatch = title.match(/^([^-]+)\s*-\s*Google Maps/);
+  if (titleMatch) {
+    return titleMatch[1].trim();
+  }
+
+  return 'unknown';
 }
 
 function extractCoordinates() {
@@ -249,10 +261,24 @@ function stopPassiveCapture() {
 // Bulk Scrape
 // ============================================================================
 
+async function loadCapturedNames() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['results'], ({ results = [] }) => {
+      // Load all captured names and placeIds to skip duplicates efficiently
+      capturedNames = new Set(results.map(r => r.name.toLowerCase()));
+      console.log(`[Maps Scraper] Loaded ${results.length} existing results to check against`);
+      resolve();
+    });
+  });
+}
+
 async function bulkScrape() {
   isScraping = true;
   currentSessionKeyword = extractKeyword(); // Capture keyword ONCE at start
   console.log(`[Maps Scraper] Starting bulk scrape for keyword: "${currentSessionKeyword}"`);
+
+  // Load already-captured names from storage to avoid clicking duplicates
+  await loadCapturedNames();
 
   try {
     // Phase 1: Scroll and collect all listings
