@@ -4,8 +4,17 @@
   box-sizing: border-box;
 }
 
-html, body, #app {
+html, body {
   height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 body {
@@ -14,13 +23,17 @@ body {
   color: #333;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   background: white;
+  min-height: 0;
+  min-width: 0;
 }
 
 header {
@@ -596,10 +609,8 @@ footer {
   background: linear-gradient(135deg, transparent 0%, transparent 50%, #1a73e8 50%, #1a73e8 100%);
   opacity: 0.5;
   transition: opacity 0.2s;
-}
-
-.resize-handle:hover {
-  opacity: 1;
+  z-index: 9999;
+  pointer-events: auto;
 }
 
 body.resizing {

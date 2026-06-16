@@ -20,12 +20,14 @@ onMounted(() => {
   let startWidth = 500
   let startHeight = 600
 
+  const htmlElement = document.documentElement
+
   resizeHandle.addEventListener('mousedown', (e) => {
     isResizing = true
     startX = e.clientX
     startY = e.clientY
-    startWidth = window.innerWidth
-    startHeight = window.innerHeight
+    startWidth = htmlElement.offsetWidth
+    startHeight = htmlElement.offsetHeight
     document.body.classList.add('resizing')
   })
 
@@ -35,11 +37,13 @@ onMounted(() => {
     const deltaX = e.clientX - startX
     const deltaY = e.clientY - startY
 
-    const newWidth = Math.max(350, startWidth + deltaX)
-    const newHeight = Math.max(300, startHeight + deltaY)
+    const newWidth = Math.max(500, Math.min(1400, startWidth + deltaX))
+    const newHeight = Math.max(300, Math.min(1000, startHeight + deltaY))
 
-    document.body.style.width = newWidth + 'px'
-    document.body.style.height = newHeight + 'px'
+    htmlElement.style.width = newWidth + 'px'
+    htmlElement.style.height = newHeight + 'px'
+
+    console.log(`[Resize] deltaY: ${deltaY}, newHeight: ${newHeight}px`)
 
     if (props.onSaveSize) {
       props.onSaveSize({ width: newWidth, height: newHeight })
@@ -53,8 +57,8 @@ onMounted(() => {
 
   // Load saved size on mount
   if (props.popupSize) {
-    document.body.style.width = props.popupSize.width + 'px'
-    document.body.style.height = props.popupSize.height + 'px'
+    htmlElement.style.width = props.popupSize.width + 'px'
+    htmlElement.style.height = props.popupSize.height + 'px'
   }
 })
 </script>
