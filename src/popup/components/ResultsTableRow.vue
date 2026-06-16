@@ -17,7 +17,7 @@
     <td v-html="statusBadge"></td>
   </tr>
 
-  <DetailsModal ref="modal" :entry="entry" />
+  <DetailsModal ref="modal" :entry="entry" @delete="handleDelete" />
 </template>
 
 <script setup>
@@ -29,6 +29,8 @@ const modal = ref(null)
 const props = defineProps({
   entry: Object
 })
+
+const emit = defineEmits(['delete'])
 
 const phoneDisplay = computed(() => {
   return (props.entry.phone && props.entry.phone !== 'N/A') ? props.entry.phone : '-'
@@ -85,5 +87,9 @@ function truncate(str, len) {
 
 function openModal() {
   modal.value?.open()
+}
+
+function handleDelete(entry) {
+  emit('delete', entry)
 }
 </script>

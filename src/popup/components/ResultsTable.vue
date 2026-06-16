@@ -56,6 +56,7 @@
             v-for="entry in filteredTableData"
             :key="entry.placeId || entry.name"
             :entry="entry"
+            @delete="handleDelete"
           />
         </tbody>
       </table>
@@ -73,6 +74,8 @@ const props = defineProps({
   selectedKeyword: String,
   keywordGroups: Object
 })
+
+const emit = defineEmits(['delete'])
 
 const tableData = computed(() => {
   if (!props.selectedKeyword || !props.keywordGroups[props.selectedKeyword]) {
@@ -158,6 +161,10 @@ watch(filteredTableData, async (newData, oldData) => {
     }
   }
 })
+
+function handleDelete(entry) {
+  emit('delete', entry)
+}
 </script>
 
 <style scoped>

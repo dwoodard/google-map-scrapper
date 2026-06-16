@@ -81,22 +81,37 @@
         >
           {{ isRetrying ? 'Fetching...' : '📥 Fetch Data' }}
         </button>
+        <button class="btn btn-danger" @click="showDeleteConfirm">🗑️ Delete</button>
         <button class="btn btn-secondary" @click="close">Close</button>
       </div>
     </div>
   </div>
+
+  <ConfirmModal
+    :model-value="showConfirm"
+    title="Delete Item"
+    :message="`Are you sure you want to delete '${entry.name}'? This cannot be undone.`"
+    confirm-label="Delete"
+    :danger="true"
+    @confirm="handleDeleteConfirm"
+    @cancel="showConfirm = false"
+  />
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import ConfirmModal from './ConfirmModal.vue'
 
 const props = defineProps({
   entry: Object
 })
 
+const emit = defineEmits(['delete'])
+
 const isOpen = ref(false)
 const isRetrying = ref(false)
 const statusMessage = ref(null)
+const showConfirm = ref(false)
 
 const isValidUrl = computed(() => {
   return props.entry?.website && props.entry.website !== 'N/A' && props.entry.website.startsWith('http')
@@ -108,6 +123,16 @@ function open() {
 
 function close() {
   isOpen.value = false
+}
+
+function showDeleteConfirm() {
+  showConfirm.value = true
+}
+
+function handleDeleteConfirm() {
+  emit('delete', props.entry)
+  showConfirm.value = false
+  close()
 }
 
 async function retryEnrichment() {
@@ -356,5 +381,14 @@ defineExpose({ open, close })
 
 .btn-secondary:hover {
   background: #e0e0e0;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
 }
 </style>

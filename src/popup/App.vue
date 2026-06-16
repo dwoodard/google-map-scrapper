@@ -52,6 +52,7 @@
       <ResultsTable
         :selected-keyword="selectedKeyword"
         :keyword-groups="keywordGroups"
+        @delete="handleDeleteItem"
       />
     </div>
 
@@ -289,5 +290,20 @@ onUnmounted(() => {
 async function handleCleanDone() {
   // Reload data after cleaning
   await storage.load()
+}
+
+async function handleDeleteItem(entry) {
+  // Remove the item from results
+  const index = results.value.findIndex(r => {
+    const rPlaceId = r.placeId || `unknown-${r.name}`
+    const ePlaceId = entry.placeId || `unknown-${entry.name}`
+    return rPlaceId === ePlaceId
+  })
+
+  if (index !== -1) {
+    results.value.splice(index, 1)
+    await storage.setAll([...results.value])
+    console.log(`[App] 🗑️ Deleted item: ${entry.name}`)
+  }
 }
 </script>
