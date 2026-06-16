@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <header>
       <h1>Google Maps Scraper</h1>
       <div class="toggle-section">
@@ -16,50 +17,71 @@
           <span id="statusIndicator" class="indicator inactive"></span>
           <span id="statusText">Inactive</span>
         </label>
-        <span id="captureCount" class="count">0 captured</span>
+        <span id="captureCount" class="count">0 total</span>
       </div>
     </header>
 
+    <!-- Controls -->
     <div class="controls">
-      <button id="bulkScrapeBtn" class="btn btn-primary">Scroll & Collect All</button>
-      <button id="clearListBtn" class="btn btn-secondary">Clear List</button>
+      <button id="bulkScrapeBtn" class="btn btn-primary">Scroll & Collect</button>
+      <button id="clearListBtn" class="btn btn-secondary">Clear All</button>
     </div>
 
-    <div class="search-info">
-      <span id="searchKeyword">Search: <span class="keyword">-</span></span>
-    </div>
-
-    <div class="table-wrapper">
-      <table id="resultsTable">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Website</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <!-- rows inserted here -->
-        </tbody>
-      </table>
-    </div>
-
-    <div class="empty-state" id="emptyState">
-      <p>No results yet. Turn on monitoring and browse Google Maps listings, or click "Scroll & Collect All" to bulk scrape.</p>
-    </div>
-
-    <div class="progress" id="progressContainer" style="display: none;">
-      <div class="progress-text" id="progressText">Scraping...</div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill"></div>
+    <!-- Main Content - Split Screen -->
+    <div class="content">
+      <!-- Left Panel: Keywords -->
+      <div class="left-panel">
+        <div class="panel-header">
+          <h3>📋 Search Terms</h3>
+        </div>
+        <div class="keywords-list" id="keywordsList">
+          <!-- keywords inserted here -->
+        </div>
+        <div class="empty-keywords" id="emptyKeywords">
+          <p>No searches yet</p>
+        </div>
       </div>
-      <button id="stopScrapeBtn" class="btn btn-secondary">Stop Scraping</button>
+
+      <!-- Right Panel: Results -->
+      <div class="right-panel">
+        <div class="panel-header">
+          <h3 id="selectedKeywordTitle">Select a keyword →</h3>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="resultsTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Website</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- rows inserted here -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <p>Select a search term from the left to view results</p>
+        </div>
+
+        <div class="progress" id="progressContainer" style="display: none;">
+          <div class="progress-text" id="progressText">Scraping...</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <button id="stopScrapeBtn" class="btn btn-secondary">Stop</button>
+        </div>
+      </div>
     </div>
 
+    <!-- Footer -->
     <footer>
-      <button id="downloadJsonBtn" class="btn btn-footer">Download JSON</button>
-      <button id="downloadCsvBtn" class="btn btn-footer">Download CSV</button>
+      <button id="downloadJsonBtn" class="btn btn-footer">📥 JSON</button>
+      <button id="downloadCsvBtn" class="btn btn-footer">📥 CSV</button>
     </footer>
   </div>
 

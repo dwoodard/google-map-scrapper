@@ -41,6 +41,7 @@ let isScraping = false;
 let panelObserver = null;
 let debounceTimer = null;
 let capturedNames = new Set(); // dedupe check
+let currentSessionKeyword = 'unknown'; // persist keyword across entire scrape session
 
 // ============================================================================
 // Utilities
@@ -60,6 +61,65 @@ function extractKeyword() {
   const title = document.title;
   const match = title.match(/^([^-]+)\s*-\s*Google Maps/);
   return match ? match[1].trim() : 'unknown';
+}
+
+function extractCoordinates() {
+  // Try to extract lat/lng from URL (format: @lat,lng,zoom)
+  const url = window.location.href;
+  const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (coordMatch) {
+    return {
+      latitude: coordMatch[1],
+      longitude: coordMatch[2]
+    };
+  }
+  return { latitude: 'N/A', longitude: 'N/A' };
+}
+
+function extractPlaceId() {
+  // Try to extract place ID from URL (0x... format)
+  const url = window.location.href;
+  const placeIdMatch = url.match(/0x[a-f0-9]+/i);
+  return placeIdMatch ? placeIdMatch[0] : 'N/A';
+}
+
+function extractMapsUrl() {
+  // Return current Maps URL
+  return window.location.href;
+}
+
+function extractOpenClosedStatus() {
+  // Look for "Open now" or "Closed" text in the hours section
+  const hoursEl = document.querySelector(CONFIG.SELECTORS.hours);
+  if (!hoursEl) return 'N/A';
+
+  const text = hoursEl.innerText?.toLowerCase() || '';
+  const ariaLabel = hoursEl.getAttribute('aria-label')?.toLowerCase() || '';
+  const fullText = text + ' ' + ariaLabel;
+
+  if (fullText.includes('open now') || fullText.includes('currently open')) return 'Open';
+  if (fullText.includes('closed') || fullText.includes('closes')) return 'Closed';
+  if (fullText.includes('open 24')) return 'Open 24h';
+
+  return 'N/A';
+}
+
+function extractPriceRange() {
+  // Look for price indicator ($, $$, $$$, $$$$)
+  const priceElements = Array.from(document.querySelectorAll('span, button, div'))
+    .filter(el => {
+      const text = el.innerText?.trim() || '';
+      return /^\$+$/.test(text) && text.length <= 4;
+    });
+
+  if (priceElements.length > 0) {
+    return priceElements[0].innerText.trim();
+  }
+
+  // Fallback: search for text like "Price: $$$"
+  const allText = document.querySelector(CONFIG.SELECTORS.panelContainer)?.innerText || '';
+  const priceMatch = allText.match(/\$+/);
+  return priceMatch ? priceMatch[0] : 'N/A';
 }
 
 function extractDetails() {
@@ -103,6 +163,12 @@ function extractDetails() {
     }
   }
 
+  const coords = extractCoordinates();
+  const status = extractOpenClosedStatus();
+  const priceRange = extractPriceRange();
+  const placeId = extractPlaceId();
+  const mapsUrl = extractMapsUrl();
+
   return {
     name,
     category,
@@ -113,7 +179,13 @@ function extractDetails() {
     phone,
     plusCode,
     hours,
-    keyword: extractKeyword(),
+    status,
+    priceRange,
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    placeId,
+    mapsUrl,
+    keyword: currentSessionKeyword, // Use session keyword, not re-extracted
     capturedAt: new Date().toISOString(),
     source: 'unknown'
   };
@@ -133,6 +205,9 @@ function markCaptured(name) {
 
 function initPassiveCapture() {
   if (panelObserver) return;
+
+  currentSessionKeyword = extractKeyword(); // Capture keyword when passive mode starts
+  console.log(`[Maps Scraper] Passive capture activated for keyword: "${currentSessionKeyword}"`);
 
   const panelContainer = document.querySelector(CONFIG.SELECTORS.panelContainer)
                       || document.querySelector(CONFIG.SELECTORS.panelContainerAlt);
@@ -176,7 +251,8 @@ function stopPassiveCapture() {
 
 async function bulkScrape() {
   isScraping = true;
-  console.log('[Maps Scraper] Starting bulk scrape');
+  currentSessionKeyword = extractKeyword(); // Capture keyword ONCE at start
+  console.log(`[Maps Scraper] Starting bulk scrape for keyword: "${currentSessionKeyword}"`);
 
   try {
     // Phase 1: Scroll and collect all listings
@@ -191,22 +267,35 @@ async function bulkScrape() {
       const listing = listings[i];
       const name = listing.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
 
+      console.log(`[Maps Scraper] [${i + 1}/${total}] Processing: "${name}"`);
+
       if (alreadyCaptured(name)) {
+        console.log(`[Maps Scraper] ⏭️  Already captured, skipping`);
         sendProgress(i + 1, total, null);
         continue;
       }
 
       // Human-like delay before clicking
-      await sleep(rand(CONFIG.MIN_DELAY_MS, CONFIG.MAX_DELAY_MS));
+      const delayBefore = rand(CONFIG.MIN_DELAY_MS, CONFIG.MAX_DELAY_MS);
+      console.log(`[Maps Scraper] ⏳ Waiting ${delayBefore}ms before click...`);
+      await sleep(delayBefore);
 
       const clickTarget = listing.querySelector(CONFIG.SELECTORS.clickTarget) || listing;
+      const currentUrl = window.location.href;
+      console.log(`[Maps Scraper] 🖱️  Clicking... (URL before: ${currentUrl.substring(0, 100)}...)`);
       clickTarget.click();
 
       // Wait for panel to load
-      await sleep(rand(CONFIG.DETAIL_MIN_DELAY_MS, CONFIG.DETAIL_MAX_DELAY_MS));
+      const delayAfter = rand(CONFIG.DETAIL_MIN_DELAY_MS, CONFIG.DETAIL_MAX_DELAY_MS);
+      console.log(`[Maps Scraper] ⏳ Waiting ${delayAfter}ms for panel to load...`);
+      await sleep(delayAfter);
+
+      const urlAfter = window.location.href;
+      console.log(`[Maps Scraper] 📄 URL after click: ${urlAfter.substring(0, 100)}...`);
 
       // Extract details
       const entry = extractDetails();
+      console.log(`[Maps Scraper] ✅ Extracted: "${entry.name}" | Phone: ${entry.phone} | Website: ${entry.website}`);
       entry.source = 'bulk';
       markCaptured(entry.name);
       await saveEntry(entry);

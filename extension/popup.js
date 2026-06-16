@@ -23,6 +23,8 @@ const DOM = {
 
 let results = [];
 let isScraping = false;
+let selectedKeyword = null;
+let keywordGroups = {}; // { keyword: [results] }
 
 // ============================================================================
 // Initialization
@@ -151,7 +153,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     updateProgress(done, total);
     if (entry) {
       results.push(entry);
-      addRowToTable(entry);
+      groupByKeyword();
+
+      // If the entry's keyword is selected, add it to the table
+      if (selectedKeyword === entry.keyword && keywordGroups[selectedKeyword]) {
+        addRowToTable(entry);
+      }
       updateCount();
     }
   } else if (message.type === 'SCRAPE_DONE') {
@@ -168,21 +175,82 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 function loadResults() {
   chrome.storage.local.get(['results'], ({ results: stored = [] }) => {
     results = stored;
+    groupByKeyword();
     updateUI();
   });
 }
 
+function groupByKeyword() {
+  keywordGroups = {};
+  results.forEach(result => {
+    const keyword = result.keyword || 'unknown';
+    if (!keywordGroups[keyword]) {
+      keywordGroups[keyword] = [];
+    }
+    keywordGroups[keyword].push(result);
+  });
+
+  // Sort keywords alphabetically
+  const sorted = {};
+  Object.keys(keywordGroups).sort().forEach(key => {
+    sorted[key] = keywordGroups[key];
+  });
+  keywordGroups = sorted;
+}
+
 function updateUI() {
-  renderTable();
+  renderKeywords();
+  if (selectedKeyword && keywordGroups[selectedKeyword]) {
+    renderTable(keywordGroups[selectedKeyword]);
+  } else {
+    renderTable([]);
+  }
   updateCount();
   updateEmptyState();
-  updateSearchKeyword();
   updateProgress(0, 0);
 }
 
-function renderTable() {
+function renderKeywords() {
+  const keywordsList = document.getElementById('keywordsList');
+  const emptyKeywords = document.getElementById('emptyKeywords');
+  const keywords = Object.keys(keywordGroups);
+
+  if (keywords.length === 0) {
+    keywordsList.style.display = 'none';
+    emptyKeywords.style.display = 'flex';
+    return;
+  }
+
+  keywordsList.style.display = 'block';
+  emptyKeywords.style.display = 'none';
+  keywordsList.innerHTML = '';
+
+  keywords.forEach(keyword => {
+    const count = keywordGroups[keyword].length;
+    const item = document.createElement('div');
+    item.className = `keyword-item ${selectedKeyword === keyword ? 'active' : ''}`;
+    item.innerHTML = `
+      <span class="keyword-name">${escapeHtml(keyword)}</span>
+      <span class="keyword-count">${count} result${count !== 1 ? 's' : ''}</span>
+    `;
+    item.addEventListener('click', () => selectKeyword(keyword));
+    keywordsList.appendChild(item);
+  });
+}
+
+function selectKeyword(keyword) {
+  selectedKeyword = keyword;
+  renderKeywords();
+  if (keywordGroups[keyword]) {
+    renderTable(keywordGroups[keyword]);
+    document.getElementById('selectedKeywordTitle').textContent = `🔍 "${keyword}"`;
+    updateEmptyState();
+  }
+}
+
+function renderTable(data = []) {
   DOM.tableBody.innerHTML = '';
-  results.forEach(row => addRowToTable(row));
+  data.forEach(row => addRowToTable(row));
 }
 
 function addRowToTable(entry) {
@@ -232,24 +300,29 @@ function getStatusBadge(entry) {
 
 function showDetails(entry) {
   const details = `${entry.name}
-Category: ${entry.category}
-Rating: ${entry.rating}
-Reviews: ${entry.reviews}
-Address: ${entry.address}
-Phone: ${entry.phone}
-Website: ${entry.website}
-Plus Code: ${entry.plusCode}
-Hours: ${entry.hours}`;
+
+📍 Category: ${entry.category}
+⭐ Rating: ${entry.rating}
+📊 Reviews: ${entry.reviews}
+🏠 Address: ${entry.address}
+☎️ Phone: ${entry.phone}
+🌐 Website: ${entry.website}
+📍 Plus Code: ${entry.plusCode}
+🕒 Hours: ${entry.hours}
+🚪 Status: ${entry.status}
+💵 Price: ${entry.priceRange}
+📌 Coordinates: ${entry.latitude}, ${entry.longitude}
+🆔 Place ID: ${entry.placeId}`;
   alert(details);
 }
 
 function updateCount() {
   const count = results.length;
-  DOM.captureCount.textContent = `${count} captured`;
+  DOM.captureCount.textContent = `${count} total`;
 }
 
 function updateEmptyState() {
-  const isEmpty = results.length === 0;
+  const isEmpty = !selectedKeyword || (selectedKeyword && (!keywordGroups[selectedKeyword] || keywordGroups[selectedKeyword].length === 0));
   DOM.emptyState.style.display = isEmpty ? 'flex' : 'none';
   DOM.resultsTable.style.display = isEmpty ? 'none' : 'table';
 }
@@ -303,6 +376,12 @@ function downloadJSON() {
     'Website': r.website,
     'Plus Code': r.plusCode,
     'Hours': r.hours,
+    'Status': r.status,
+    'Price Range': r.priceRange,
+    'Latitude': r.latitude,
+    'Longitude': r.longitude,
+    'Place ID': r.placeId,
+    'Maps URL': r.mapsUrl,
     'Keyword': r.keyword,
     'Captured At': r.capturedAt
   }));
@@ -311,7 +390,7 @@ function downloadJSON() {
 }
 
 function downloadCSV() {
-  const headers = ['Name', 'Category', 'Rating', 'Reviews', 'Address', 'Phone', 'Website', 'Plus Code', 'Hours', 'Keyword', 'Captured At'];
+  const headers = ['Name', 'Category', 'Rating', 'Reviews', 'Address', 'Phone', 'Website', 'Plus Code', 'Hours', 'Status', 'Price Range', 'Latitude', 'Longitude', 'Place ID', 'Maps URL', 'Keyword', 'Captured At'];
   const fieldMap = {
     'Name': 'name',
     'Category': 'category',
@@ -322,6 +401,12 @@ function downloadCSV() {
     'Website': 'website',
     'Plus Code': 'plusCode',
     'Hours': 'hours',
+    'Status': 'status',
+    'Price Range': 'priceRange',
+    'Latitude': 'latitude',
+    'Longitude': 'longitude',
+    'Place ID': 'placeId',
+    'Maps URL': 'mapsUrl',
     'Keyword': 'keyword',
     'Captured At': 'capturedAt'
   };
@@ -358,6 +443,12 @@ function triggerDownload(blob, filename) {
 
 function truncate(str, len) {
   return str.length > len ? str.slice(0, len) + '...' : str;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 console.log('[Maps Scraper Popup] Loaded');
