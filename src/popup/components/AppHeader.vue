@@ -1,6 +1,9 @@
 <template>
   <header>
-    <h1>Google Maps Scraper</h1>
+    <div class="header-top">
+      <h1>Google Maps Scraper</h1>
+      <ExportDropdown :results="results" />
+    </div>
     <div class="toggle-section">
       <label title="Enable to auto-capture listings as you click them on Google Maps">
         <input
@@ -17,10 +20,26 @@
 </template>
 
 <script setup>
+import ExportDropdown from './ExportDropdown.vue'
+
 defineProps({
   active: Boolean,
-  total: Number
+  total: Number,
+  results: Array
 })
 
 defineEmits(['toggle-active'])
 </script>
+
+<style scoped>
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+h1 {
+  margin-bottom: 0;
+}
+</style>

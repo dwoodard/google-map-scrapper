@@ -3,6 +3,7 @@
     <AppHeader
       :active="activeToggle"
       :total="results.length"
+      :results="results"
       @toggle-active="handleToggleActive"
     />
 
@@ -33,7 +34,6 @@
       @stop="handleStopScrape"
     />
 
-    <DownloadFooter :results="results" />
 
     <ResizeHandle
       :popup-size="popupSize"
@@ -59,7 +59,6 @@ import ScrapeControls from './components/ScrapeControls.vue'
 import KeywordList from './components/KeywordList.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import ProgressBar from './components/ProgressBar.vue'
-import DownloadFooter from './components/DownloadFooter.vue'
 import ResizeHandle from './components/ResizeHandle.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import { useChromeStorage } from './composables/useChromeStorage.js'
