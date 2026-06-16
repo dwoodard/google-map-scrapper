@@ -69,6 +69,14 @@
       </div>
 
       <div class="modal-footer">
+        <button
+          v-if="entry.source !== 'bulk'"
+          class="btn btn-primary"
+          @click="retryEnrichment"
+          :disabled="isRetrying"
+        >
+          {{ isRetrying ? 'Fetching...' : '📥 Fetch Data' }}
+        </button>
         <button class="btn btn-secondary" @click="close">Close</button>
       </div>
     </div>
@@ -83,6 +91,7 @@ const props = defineProps({
 })
 
 const isOpen = ref(false)
+const isRetrying = ref(false)
 
 const isValidUrl = computed(() => {
   return props.entry?.website && props.entry.website !== 'N/A' && props.entry.website.startsWith('http')
@@ -94,6 +103,47 @@ function open() {
 
 function close() {
   isOpen.value = false
+}
+
+async function retryEnrichment() {
+  isRetrying.value = true
+  try {
+    // Send message to content script to enrich this specific result by Place ID
+    await chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'ENRICH_SINGLE',
+          placeId: props.entry.placeId,
+          name: props.entry.name
+        }, () => {
+          // ignore errors
+        })
+      }
+    })
+
+    // Wait a moment for enrichment to complete
+    await new Promise(r => setTimeout(r, 8000))
+
+    // Refresh the entry from storage
+    const updated = await new Promise((resolve) => {
+      chrome.storage.local.get(['results'], ({ results = [] }) => {
+        const found = results.find(r => r.placeId === props.entry.placeId)
+        resolve(found)
+      })
+    })
+
+    if (updated) {
+      Object.assign(props.entry, updated)
+      alert('✅ Enrichment complete! Details have been updated.')
+    } else {
+      alert('❌ Could not enrich. Make sure you\'re on the Google Maps search page.')
+    }
+  } catch (err) {
+    console.error('Error retrying enrichment:', err)
+    alert('❌ Error during enrichment. Check console.')
+  } finally {
+    isRetrying.value = false
+  }
 }
 
 defineExpose({ open, close })

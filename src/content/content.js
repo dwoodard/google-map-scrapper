@@ -337,6 +337,55 @@ async function alreadyHasCompleteData(placeId) {
   });
 }
 
+async function enrichSingleResult(targetPlaceId, targetName) {
+  console.log(`[Maps Scraper] Attempting to enrich: ${targetName} (${targetPlaceId})`);
+
+  try {
+    // Find the listing with matching Place ID
+    const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
+    let targetListing = null;
+
+    for (const listing of listings) {
+      const placeId = extractPlaceIdFromListing(listing);
+      if (placeId === targetPlaceId) {
+        targetListing = listing;
+        break;
+      }
+    }
+
+    if (!targetListing) {
+      console.log(`[Maps Scraper] Could not find listing with Place ID ${targetPlaceId}`);
+      return;
+    }
+
+    console.log(`[Maps Scraper] Found listing, clicking to enrich...`);
+
+    // Click the listing
+    const clickTarget = targetListing.querySelector(CONFIG.SELECTORS.clickTarget) || targetListing;
+    const clickHandler = (e) => {
+      if (clickTarget.tagName === 'A') {
+        e.preventDefault();
+      }
+    };
+    clickTarget.addEventListener('click', clickHandler, true);
+    clickTarget.click();
+    clickTarget.removeEventListener('click', clickHandler, true);
+
+    // Wait for detail panel to load
+    await sleep(rand(3000, 5000));
+
+    // Extract and merge details
+    const fullDetails = extractDetails();
+    fullDetails.source = 'bulk';
+    console.log(`[Maps Scraper] Extracted details: ${fullDetails.name}`);
+    await mergeEntry(fullDetails);
+
+    console.log(`[Maps Scraper] ✅ Single enrichment complete`);
+  } catch (err) {
+    console.error('[Maps Scraper] Error enriching single result:', err);
+  }
+}
+
 async function bulkScrape(options = {}) {
   isScraping = true;
   shouldScrollToBottom = options.scrollToBottom !== false;
@@ -576,6 +625,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ count: results.length });
     });
     return true; // async response
+  } else if (message.type === 'ENRICH_SINGLE') {
+    // Enrich a single result by finding and clicking it
+    enrichSingleResult(message.placeId, message.name).catch(err => console.error(err));
+    sendResponse({ success: true });
   }
 });
 
