@@ -1,5 +1,5 @@
 <template>
-  <tr @click="showDetails">
+  <tr @click="openModal" style="cursor: pointer;">
     <td :title="entry.name">{{ truncate(entry.name, 20) }}</td>
     <td :title="phoneDisplay">{{ truncate(phoneDisplay, 15) }}</td>
     <td :title="entry.website">
@@ -7,6 +7,7 @@
         v-if="isValidUrl"
         :href="entry.website"
         target="_blank"
+        @click.stop
         style="color: #1a73e8; text-decoration: none; font-size: 11px;"
       >
         {{ website }}
@@ -15,10 +16,15 @@
     </td>
     <td v-html="statusBadge"></td>
   </tr>
+
+  <DetailsModal ref="modal" :entry="entry" />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import DetailsModal from './DetailsModal.vue'
+
+const modal = ref(null)
 
 const props = defineProps({
   entry: Object
@@ -77,21 +83,7 @@ function truncate(str, len) {
   return str.length > len ? str.slice(0, len) + '...' : str
 }
 
-function showDetails() {
-  const details = `${props.entry.name}
-
-📍 Category: ${props.entry.category}
-⭐ Rating: ${props.entry.rating}
-📊 Reviews: ${props.entry.reviews}
-🏠 Address: ${props.entry.address}
-☎️ Phone: ${props.entry.phone}
-🌐 Website: ${props.entry.website}
-📍 Plus Code: ${props.entry.plusCode}
-🕒 Hours: ${props.entry.hours}
-🚪 Status: ${props.entry.status}
-💵 Price: ${props.entry.priceRange}
-📌 Coordinates: ${props.entry.latitude}, ${props.entry.longitude}
-🆔 Place ID: ${props.entry.placeId}`
-  alert(details)
+function openModal() {
+  modal.value?.open()
 }
 </script>
