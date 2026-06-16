@@ -94,14 +94,13 @@ import { useKeywordGroups } from './composables/useKeywordGroups.js'
 import { useContentMessaging } from './composables/useContentMessaging.js'
 
 const storage = useChromeStorage()
-const { results, popupSize } = storage
+const { results, popupSize, panelWidth } = storage
 
 const selectedKeyword = ref(null)
 const pendingClear = ref(null)
 const activeToggle = ref(false)
 const contentArea = ref(null)
 const panelDivider = ref(null)
-const leftPanelWidth = ref(40) // default 40%
 let isResizingPanel = false
 
 const keywordGroups = useKeywordGroups(results)
@@ -177,6 +176,13 @@ onMounted(async () => {
   // Auto-Capture is always on — enable passive listening by default
   activeToggle.value = true
   await messaging.activate(true)
+
+  // Initialize panel width and layout
+  if (contentArea.value) {
+    contentArea.value.style.setProperty('--left-panel-width', panelWidth.value + '%')
+    // Reset scrollTop to prevent content from being pushed out of view
+    contentArea.value.scrollTop = 0
+  }
 })
 
 function handleToggleActive(active) {
@@ -222,18 +228,18 @@ async function handleSavePopupSize(size) {
 
 function startPanelResize(e) {
   isResizingPanel = true
-  const startX = e.clientX
   const container = contentArea.value
   if (!container) return
+  document.body.classList.add('resizing-panel')
 
   const handleMouseMove = (moveEvent) => {
     if (!isResizingPanel) return
 
-    const deltaX = moveEvent.clientX - startX
-    const containerWidth = container.offsetWidth
-    const newLeftWidth = Math.max(25, Math.min(75, leftPanelWidth.value + (deltaX / containerWidth) * 100))
+    const rect = container.getBoundingClientRect()
+    const percentage = ((moveEvent.clientX - rect.left) / rect.width) * 100
+    const newLeftWidth = Math.max(25, Math.min(75, percentage))
 
-    leftPanelWidth.value = newLeftWidth
+    panelWidth.value = newLeftWidth
     container.style.setProperty('--left-panel-width', newLeftWidth + '%')
   }
 
@@ -241,11 +247,12 @@ function startPanelResize(e) {
     isResizingPanel = false
     document.removeEventListener('mousemove', handleMouseMove)
     document.removeEventListener('mouseup', handleMouseUp)
+    document.body.classList.remove('resizing-panel')
+    storage.savePanelWidth(panelWidth.value)
   }
 
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
-  document.body.classList.add('resizing-panel')
 }
 
 onMounted(async () => {
@@ -260,7 +267,7 @@ onMounted(async () => {
 
   // Initialize panel width
   if (contentArea.value) {
-    contentArea.value.style.setProperty('--left-panel-width', leftPanelWidth.value + '%')
+    contentArea.value.style.setProperty('--left-panel-width', panelWidth.value + '%')
     // Reset scrollTop to prevent content from being pushed out of view
     contentArea.value.scrollTop = 0
   }

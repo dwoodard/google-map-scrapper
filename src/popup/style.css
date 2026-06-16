@@ -112,11 +112,12 @@ input[type="checkbox"] {
 }
 
 .left-panel {
-  width: var(--left-panel-width);
+  width: var(--left-panel-width, 40%);
   border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
   min-width: 120px;
+  flex-shrink: 0;
   transition: width 0.1s ease;
 }
 
@@ -312,6 +313,8 @@ input[type="checkbox"] {
   border-bottom: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
+  overflow: auto;
+  min-height: 0;
 }
 
 .search-box {
