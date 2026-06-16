@@ -10,7 +10,7 @@
   ],
   "action": {
     "default_title": "Google Maps Scraper",
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/index.html"
   },
   "host_permissions": [
     "https://www.google.com/maps/*"
@@ -21,7 +21,7 @@
         "https://www.google.com/maps/*"
       ],
       "js": [
-        "content.js"
+        "src/content/content.js"
       ]
     }
   ]

@@ -1,0 +1,20 @@
+{
+  "name": "google-map-scrapper",
+  "version": "1.0.0",
+  "description": "Chrome extension to scrape business listings from Google Maps search results",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.6.1",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "vite": "^8.0.0"
+  }
+}
