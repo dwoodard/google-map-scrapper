@@ -343,25 +343,34 @@ async function enrichSingleResult(targetPlaceId, targetName) {
   try {
     // Find the listing with matching Place ID
     const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
-    let targetListing = null;
+    console.log(`[Maps Scraper] Found ${listings.length} total listings on page`);
 
+    let targetListing = null;
     for (const listing of listings) {
       const placeId = extractPlaceIdFromListing(listing);
+      console.log(`[Maps Scraper] Checking listing placeId: ${placeId}`);
       if (placeId === targetPlaceId) {
         targetListing = listing;
+        console.log(`[Maps Scraper] ✅ Matched! Found target listing`);
         break;
       }
     }
 
     if (!targetListing) {
-      console.log(`[Maps Scraper] Could not find listing with Place ID ${targetPlaceId}`);
+      console.log(`[Maps Scraper] ❌ Could not find listing with Place ID ${targetPlaceId}`);
       return;
     }
 
-    console.log(`[Maps Scraper] Found listing, clicking to enrich...`);
+    console.log(`[Maps Scraper] 🖱️ Clicking listing to open detail panel...`);
+
+    // Scroll listing into view first
+    targetListing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await sleep(500);
 
     // Click the listing
     const clickTarget = targetListing.querySelector(CONFIG.SELECTORS.clickTarget) || targetListing;
+    console.log(`[Maps Scraper] Click target element:`, clickTarget.tagName);
+
     const clickHandler = (e) => {
       if (clickTarget.tagName === 'A') {
         e.preventDefault();
@@ -371,13 +380,29 @@ async function enrichSingleResult(targetPlaceId, targetName) {
     clickTarget.click();
     clickTarget.removeEventListener('click', clickHandler, true);
 
-    // Wait for detail panel to load
-    await sleep(rand(3000, 5000));
+    console.log(`[Maps Scraper] ⏳ Waiting for detail panel to load...`);
+    // Wait longer for detail panel to fully load
+    await sleep(5000);
+
+    // Verify detail panel opened by checking if we can find the name element
+    const nameEl = document.querySelector(CONFIG.SELECTORS.name);
+    if (nameEl) {
+      console.log(`[Maps Scraper] ✅ Detail panel loaded, name: ${nameEl.innerText}`);
+    } else {
+      console.log(`[Maps Scraper] ⚠️ Detail panel may not have loaded properly`);
+    }
 
     // Extract and merge details
     const fullDetails = extractDetails();
+    console.log(`[Maps Scraper] 📊 Extracted details:`, {
+      name: fullDetails.name,
+      phone: fullDetails.phone,
+      website: fullDetails.website,
+      address: fullDetails.address,
+      hours: fullDetails.hours
+    });
+
     fullDetails.source = 'bulk';
-    console.log(`[Maps Scraper] Extracted details: ${fullDetails.name}`);
     await mergeEntry(fullDetails);
 
     console.log(`[Maps Scraper] ✅ Single enrichment complete`);
