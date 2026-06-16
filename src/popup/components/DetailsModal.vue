@@ -140,6 +140,20 @@ async function retryEnrichment() {
   statusMessage.value = null
   console.log(`[Modal] Fetching data for: ${props.entry.name} (${props.entry.placeId})`);
 
+  let enrichmentCompleted = false
+  let enrichmentResult = null
+
+  // Listen for enrichment completion message from content script
+  const listener = (message) => {
+    if (message.type === 'ENRICHMENT_COMPLETE' && message.entry?.placeId === props.entry.placeId) {
+      console.log('[Modal] Received enrichment completion message:', message.entry);
+      enrichmentCompleted = true
+      enrichmentResult = message.entry
+      chrome.runtime.onMessage.removeListener(listener)
+    }
+  }
+  chrome.runtime.onMessage.addListener(listener)
+
   try {
     // Send message to content script to enrich this specific result by Place ID
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -166,24 +180,18 @@ async function retryEnrichment() {
       })
     })
 
-    // Wait longer for enrichment to complete (clicking + extraction)
+    // Wait for enrichment completion message (max 15 seconds)
     console.log(`[Modal] Waiting for enrichment to complete...`);
-    await new Promise(r => setTimeout(r, 10000))
+    let waitTime = 0
+    while (!enrichmentCompleted && waitTime < 15000) {
+      await new Promise(r => setTimeout(r, 500))
+      waitTime += 500
+    }
 
-    // Refresh the entry from storage
-    console.log(`[Modal] Fetching updated data from storage...`);
-    const updated = await new Promise((resolve) => {
-      chrome.storage.local.get(['results'], ({ results = [] }) => {
-        const found = results.find(r => r.placeId === props.entry.placeId)
-        console.log(`[Modal] Found in storage:`, found);
-        resolve(found)
-      })
-    })
-
-    if (updated && updated.source === 'bulk') {
+    if (enrichmentCompleted && enrichmentResult) {
       // Successfully enriched - update all fields
       console.log(`[Modal] Data updated successfully`);
-      Object.assign(props.entry, updated)
+      Object.assign(props.entry, enrichmentResult)
       statusMessage.value = {
         type: 'success',
         text: '✅ Data fetched successfully!'
@@ -191,17 +199,38 @@ async function retryEnrichment() {
       setTimeout(() => {
         statusMessage.value = null
       }, 4000)
-    } else if (updated) {
-      // Still partial
-      console.log(`[Modal] Data still partial:`, updated);
-      statusMessage.value = {
-        type: 'error',
-        text: '⚠️ Listing found but could not extract full data. Try again or refresh the page.'
-      }
     } else {
-      statusMessage.value = {
-        type: 'error',
-        text: '❌ Could not find listing. Make sure you\'re on the correct Google Maps search page and the listing is visible.'
+      // Fallback: check storage directly
+      console.log(`[Modal] Enrichment message not received, checking storage...`);
+      const updated = await new Promise((resolve) => {
+        chrome.storage.local.get(['results'], ({ results = [] }) => {
+          const found = results.find(r => r.placeId === props.entry.placeId)
+          resolve(found)
+        })
+      })
+
+      if (updated && updated.source === 'bulk') {
+        console.log(`[Modal] Data updated successfully from storage`);
+        Object.assign(props.entry, updated)
+        statusMessage.value = {
+          type: 'success',
+          text: '✅ Data fetched successfully!'
+        }
+        setTimeout(() => {
+          statusMessage.value = null
+        }, 4000)
+      } else if (updated) {
+        // Still partial
+        console.log(`[Modal] Data still partial:`, updated);
+        statusMessage.value = {
+          type: 'error',
+          text: '⚠️ Listing found but could not extract full data. Try again or refresh the page.'
+        }
+      } else {
+        statusMessage.value = {
+          type: 'error',
+          text: '❌ Could not find listing. Make sure you\'re on the correct Google Maps search page and the listing is visible.'
+        }
       }
     }
   } catch (err) {
@@ -212,6 +241,7 @@ async function retryEnrichment() {
     }
   } finally {
     isRetrying.value = false
+    chrome.runtime.onMessage.removeListener(listener)
   }
 }
 

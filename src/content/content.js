@@ -397,6 +397,7 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
       });
 
       await mergeEntry(fullDetails);
+      sendMessage({ type: 'ENRICHMENT_COMPLETE', entry: fullDetails });
       console.log(`[Maps Scraper] ✅ Single enrichment complete`);
       return;
     }
@@ -454,6 +455,7 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
     });
 
     await mergeEntry(fullDetails);
+    sendMessage({ type: 'ENRICHMENT_COMPLETE', entry: fullDetails });
     console.log(`[Maps Scraper] ✅ Single enrichment complete`);
   } catch (err) {
     console.error('[Maps Scraper] Error enriching single result:', err);
