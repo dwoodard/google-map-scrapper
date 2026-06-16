@@ -6,6 +6,10 @@
         <button class="close-btn" @click="close">✕</button>
       </div>
 
+      <div v-if="statusMessage" :class="['status-toast', statusMessage.type]">
+        {{ statusMessage.text }}
+      </div>
+
       <div class="modal-body">
         <div class="status-line">
           {{ entry.source === 'bulk' ? '✅ Enriched' : '⌛ Pending enrichment' }}
