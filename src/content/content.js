@@ -211,6 +211,43 @@ function markCaptured(name) {
   capturedNames.add(name.toLowerCase());
 }
 
+function extractPlaceIdFromListing(listingEl) {
+  // Try to extract place ID from the listing's href
+  const clickTarget = listingEl.querySelector(CONFIG.SELECTORS.clickTarget);
+  if (clickTarget && clickTarget.href) {
+    const placeIdMatch = clickTarget.href.match(/0x[a-f0-9]+/i);
+    if (placeIdMatch) return placeIdMatch[0];
+  }
+  return 'N/A';
+}
+
+function extractPartialListing(listingEl) {
+  // Extract minimal data from listing without clicking
+  const name = listingEl.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
+  const placeId = extractPlaceIdFromListing(listingEl);
+
+  return {
+    name,
+    placeId,
+    category: 'N/A',
+    rating: 'N/A',
+    reviews: 'N/A',
+    address: 'N/A',
+    website: 'N/A',
+    phone: 'N/A',
+    plusCode: 'N/A',
+    hours: 'N/A',
+    status: 'N/A',
+    priceRange: 'N/A',
+    latitude: 'N/A',
+    longitude: 'N/A',
+    mapsUrl: 'N/A',
+    keyword: currentSessionKeyword,
+    capturedAt: new Date().toISOString(),
+    source: 'partial'
+  };
+}
+
 // ============================================================================
 // Passive Capture - Mutation Observer
 // ============================================================================
@@ -272,6 +309,26 @@ async function loadCapturedNames() {
   });
 }
 
+async function alreadyHasCompleteData(placeId) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['results'], ({ results = [] }) => {
+      const existing = results.find(r => r.placeId === placeId);
+      if (!existing) {
+        resolve(false);
+        return;
+      }
+      // Check if it's complete (has phone, website, address, or hours - not just N/A)
+      const isComplete = existing.source === 'bulk' || (
+        (existing.phone && existing.phone !== 'N/A') ||
+        (existing.website && existing.website !== 'N/A') ||
+        (existing.address && existing.address !== 'N/A') ||
+        (existing.hours && existing.hours !== 'N/A')
+      );
+      resolve(isComplete);
+    });
+  });
+}
+
 async function bulkScrape() {
   isScraping = true;
   currentSessionKeyword = extractKeyword(); // Capture keyword ONCE at start
@@ -292,11 +349,13 @@ async function bulkScrape() {
 
       const listing = listings[i];
       const name = listing.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
+      const placeId = extractPlaceIdFromListing(listing);
 
       console.log(`[Maps Scraper] [${i + 1}/${total}] Processing: "${name}"`);
 
-      if (alreadyCaptured(name)) {
-        console.log(`[Maps Scraper] ⏭️  Already captured, skipping`);
+      // Only skip if we already have COMPLETE data for this placeId
+      if (placeId !== 'N/A' && await alreadyHasCompleteData(placeId)) {
+        console.log(`[Maps Scraper] ⏭️  Already have complete data, skipping`);
         sendProgress(i + 1, total, null);
         continue;
       }
@@ -329,11 +388,11 @@ async function bulkScrape() {
       console.log(`[Maps Scraper] 📄 URL after click: ${urlAfter.substring(0, 100)}...`);
 
       // Extract details
-      const entry = extractDetails();
-      console.log(`[Maps Scraper] ✅ Extracted: "${entry.name}" | Phone: ${entry.phone} | Website: ${entry.website}`);
-      entry.source = 'bulk';
-      markCaptured(entry.name);
-      await saveEntry(entry);
+      const fullDetails = extractDetails();
+      console.log(`[Maps Scraper] ✅ Extracted: "${fullDetails.name}" | Phone: ${fullDetails.phone} | Website: ${fullDetails.website}`);
+      fullDetails.source = 'bulk';
+      markCaptured(fullDetails.name);
+      await mergeEntry(fullDetails);
 
       // Occasional long pause
       if (Math.random() < CONFIG.LONG_PAUSE_CHANCE) {
@@ -347,7 +406,7 @@ async function bulkScrape() {
         listing.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
 
-      sendProgress(i + 1, total, entry);
+      sendProgress(i + 1, total, fullDetails);
     }
   } catch (err) {
     console.error('[Maps Scraper] Error during bulk scrape:', err);
@@ -371,6 +430,23 @@ async function phase1ScrollCollect() {
     const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
     const count = listings.length;
 
+    if (count !== prevCount) {
+      // New listings found — capture them as partials
+      for (let i = prevCount; i < count; i++) {
+        const listing = listings[i];
+        const name = listing.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
+
+        if (!alreadyCaptured(name)) {
+          const partial = extractPartialListing(listing);
+          markCaptured(partial.name);
+          await saveEntry(partial);
+          console.log(`[Maps Scraper] Phase 1 captured (partial): ${partial.name}`);
+          // Send progress so popup shows results in real-time
+          sendProgress(i + 1, count, partial);
+        }
+      }
+    }
+
     if (count === prevCount) {
       // No new listings — stable
       break;
@@ -387,6 +463,30 @@ async function phase1ScrollCollect() {
 // ============================================================================
 // Storage & Communication
 // ============================================================================
+
+async function mergeEntry(fullDetails) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['results'], ({ results = [] }) => {
+      const placeId = fullDetails.placeId;
+
+      // Try to find existing partial with same placeId
+      if (placeId && placeId !== 'N/A') {
+        const existingIndex = results.findIndex(r => r.placeId === placeId);
+        if (existingIndex !== -1) {
+          // Update existing partial with full details
+          results[existingIndex] = { ...results[existingIndex], ...fullDetails };
+          console.log(`[Maps Scraper] Merged details into existing partial: ${fullDetails.name}`);
+          chrome.storage.local.set({ results }, resolve);
+          return;
+        }
+      }
+
+      // No existing partial found, save as new complete entry
+      results.push(fullDetails);
+      chrome.storage.local.set({ results }, resolve);
+    });
+  });
+}
 
 async function saveEntry(entry) {
   return new Promise((resolve) => {
