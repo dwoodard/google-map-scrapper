@@ -99,11 +99,17 @@ const messaging = useContentMessaging(
     // Check for duplicate by Place ID before adding to avoid duplicates in UI
     if (entry) {
       const placeId = entry.placeId || `unknown-${entry.name}`
-      const exists = results.value.some(r => {
+      const existingIndex = results.value.findIndex(r => {
         const rPlaceId = r.placeId || `unknown-${r.name}`
         return rPlaceId === placeId
       })
-      if (!exists) {
+
+      if (existingIndex !== -1) {
+        // Update existing entry (enrichment in progress)
+        Object.assign(results.value[existingIndex], entry)
+        console.log(`[App] 🔄 Updated in UI: ${entry.name} (${entry.source})`)
+      } else {
+        // Add new entry
         results.value.push(entry)
         console.log(`[App] ✅ Added to UI: ${entry.name} (${entry.source})`)
       }
