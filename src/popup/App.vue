@@ -75,11 +75,20 @@ const activeToggle = ref(false)
 
 const keywordGroups = useKeywordGroups(results)
 
-const messaging = useContentMessaging((entry) => {
-  if (entry) {
-    results.value.push(entry)
+const messaging = useContentMessaging(
+  (entry) => {
+    // Push entry to in-memory results for instant UI update
+    if (entry) {
+      results.value.push(entry)
+    }
+  },
+  async (entry) => {
+    // Persist new entry to storage immediately
+    if (entry) {
+      await storage.setAll([...results.value])
+    }
   }
-})
+)
 
 const { isScraping, progress } = messaging
 

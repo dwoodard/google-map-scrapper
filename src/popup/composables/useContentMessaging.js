@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
-export function useContentMessaging(onProgressCallback) {
+export function useContentMessaging(onProgressCallback, onEntryCapture) {
   const isScraping = ref(false)
   const progress = ref({ done: 0, total: 0 })
 
@@ -42,8 +42,13 @@ export function useContentMessaging(onProgressCallback) {
         const { done, total, entry } = message
         progress.value = { done, total }
 
-        if (entry && onProgressCallback) {
-          onProgressCallback(entry)
+        if (entry) {
+          if (onProgressCallback) {
+            onProgressCallback(entry)
+          }
+          if (onEntryCapture) {
+            onEntryCapture(entry)
+          }
         }
       } else if (message.type === 'SCRAPE_DONE') {
         isScraping.value = false
