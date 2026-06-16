@@ -79,6 +79,7 @@ const tableData = computed(() => {
 })
 
 const searchQuery = ref('')
+const lastUpdatedId = ref(null)
 
 const filteredTableData = computed(() => {
   if (!searchQuery.value.trim()) {
@@ -114,13 +115,37 @@ const isEmpty = computed(() => {
   return !props.selectedKeyword || tableData.value.length === 0
 })
 
-// Auto-scroll to latest result
-watch(filteredTableData, async () => {
+// Auto-scroll to newly enriched result
+watch(filteredTableData, async (newData, oldData) => {
   await nextTick()
-  if (tableBody.value && filteredTableData.value.length > 0) {
-    const lastRow = tableBody.value.lastElementChild
-    if (lastRow) {
-      lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  if (!tableBody.value || newData.length === 0) return
+
+  // Find the most recently enriched result (changed from partial to bulk)
+  let targetEntry = null
+
+  if (!oldData || newData.length > oldData.length) {
+    // New result added - scroll to it
+    targetEntry = newData[newData.length - 1]
+  } else {
+    // Check if any result was just enriched (source changed from partial to bulk)
+    for (let i = 0; i < newData.length; i++) {
+      const newEntry = newData[i]
+      const oldEntry = oldData?.[i]
+      if (oldEntry && oldEntry.source === 'partial' && newEntry.source === 'bulk') {
+        targetEntry = newEntry
+        break
+      }
+    }
+  }
+
+  if (targetEntry) {
+    const rows = tableBody.value.querySelectorAll('tr')
+    const targetRow = Array.from(rows).find(row => {
+      const cells = row.querySelectorAll('td')
+      return cells[0]?.textContent?.includes(targetEntry.name)
+    })
+    if (targetRow) {
+      targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
 })
