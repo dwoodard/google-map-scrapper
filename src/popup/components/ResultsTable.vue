@@ -21,14 +21,37 @@
         />
       </div>
 
+      <div class="filter-bar">
+        <button
+          :class="['filter-btn', { active: statusFilter === 'all' }]"
+          @click="statusFilter = 'all'"
+        >
+          All
+        </button>
+        <button
+          :class="['filter-btn', { active: statusFilter === 'enriched' }]"
+          @click="statusFilter = 'enriched'"
+        >
+          ✅ Enriched
+        </button>
+        <button
+          :class="['filter-btn', { active: statusFilter === 'pending' }]"
+          @click="statusFilter = 'pending'"
+        >
+          ⌛ Pending
+        </button>
+      </div>
+
       <div class="results-summary">
         <div class="summary-stat">
-          <span class="stat-label">Results:</span>
-          <span class="stat-value">{{ tableStats.total }}</span>
+          <span class="stat-label">{{ statusFilter !== 'all' ? 'Showing' : 'Results' }}:</span>
+          <span class="stat-value">
+            {{ tableStats.displayed }}<span v-if="statusFilter !== 'all'" class="filter-note"> / {{ tableStats.total }}</span>
+          </span>
         </div>
         <div class="summary-stat">
           <span class="stat-label">Enriched:</span>
-          <span class="stat-value">{{ tableStats.enriched }}/{{ tableData.length }}</span>
+          <span class="stat-value">{{ tableStats.enriched }}/{{ tableStats.total }}</span>
         </div>
         <div v-if="tableStats.pending > 0" class="summary-stat pending">
           <span class="stat-label">Pending:</span>
@@ -73,7 +96,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import ResultsTableRow from './ResultsTableRow.vue'
 import { fuzzyFilter } from '../utils/fuzzySearch.js'
 
@@ -97,9 +120,10 @@ const searchQuery = ref('')
 const lastUpdatedId = ref(null)
 const sortColumn = ref('name')
 const sortDirection = ref('asc')
+const statusFilter = ref('all')
 
 const filteredTableData = computed(() => {
-  const filtered = fuzzyFilter(tableData.value, searchQuery.value, [
+  let filtered = fuzzyFilter(tableData.value, searchQuery.value, [
     'name',
     'phone',
     'website',
@@ -107,6 +131,18 @@ const filteredTableData = computed(() => {
     'source',
     'reviews'
   ])
+
+  // Apply status filter
+  if (statusFilter.value !== 'all') {
+    filtered = filtered.filter(item => {
+      if (statusFilter.value === 'enriched') {
+        return item.source === 'bulk'
+      } else if (statusFilter.value === 'pending') {
+        return item.source === 'partial'
+      }
+      return true
+    })
+  }
 
   return [...filtered].sort((a, b) => {
     const aVal = String(a[sortColumn.value] || '').toLowerCase()
@@ -121,15 +157,17 @@ const filteredTableData = computed(() => {
 })
 
 const tableStats = computed(() => {
-  const data = filteredTableData.value
-  const total = data.length
-  const enriched = data.filter(r => r.source === 'bulk').length
-  const pending = data.filter(r => r.source === 'partial').length
+  const allData = tableData.value
+  const total = allData.length
+  const enriched = allData.filter(r => r.source === 'bulk').length
+  const pending = allData.filter(r => r.source === 'partial').length
+  const displayed = filteredTableData.value.length
 
   return {
     total,
     enriched,
     pending,
+    displayed,
     enrichmentPercent: total > 0 ? Math.round((enriched / total) * 100) : 0
   }
 })
@@ -191,6 +229,33 @@ function toggleSort(column) {
 function handleDelete(entry) {
   emit('delete', entry)
 }
+
+function getFilteredData() {
+  return filteredTableData.value
+}
+
+// Load filter preferences on mount
+onMounted(() => {
+  chrome.storage.local.get(['tableFilters'], (result) => {
+    const filters = result.tableFilters || {}
+    if (filters.statusFilter) statusFilter.value = filters.statusFilter
+    if (filters.sortColumn) sortColumn.value = filters.sortColumn
+    if (filters.sortDirection) sortDirection.value = filters.sortDirection
+  })
+})
+
+// Save filter preferences when they change
+watch([statusFilter, sortColumn, sortDirection], () => {
+  chrome.storage.local.set({
+    tableFilters: {
+      statusFilter: statusFilter.value,
+      sortColumn: sortColumn.value,
+      sortDirection: sortDirection.value
+    }
+  })
+}, { deep: true })
+
+defineExpose({ getFilteredData })
 </script>
 
 <style scoped>
@@ -209,5 +274,57 @@ function handleDelete(entry) {
 .maps-link:hover {
   color: #1557b0;
   background: rgba(26, 115, 232, 0.05);
+}
+
+thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+thead th.sortable:hover {
+  background-color: #f5f5f5;
+}
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #1a73e8;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.filter-btn:hover {
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.filter-btn.active {
+  background: #1a73e8;
+  color: white;
+  border-color: #1a73e8;
+}
+
+.filter-note {
+  font-size: 10px;
+  color: #999;
+  font-weight: normal;
 }
 </style>

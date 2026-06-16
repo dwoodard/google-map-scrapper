@@ -3,7 +3,7 @@
     <AppHeader
       :active="activeToggle"
       :total="results.length"
-      :results="results"
+      :results="exportData"
       :is-side-panel="isSidePanel"
       :selected-keyword="selectedKeyword"
       @toggle-active="handleToggleActive"
@@ -51,6 +51,7 @@
       ></div>
 
       <ResultsTable
+        ref="resultsTable"
         :selected-keyword="selectedKeyword"
         :keyword-groups="keywordGroups"
         @delete="handleDeleteItem"
@@ -103,6 +104,7 @@ const pendingClear = ref(null)
 const activeToggle = ref(false)
 const contentArea = ref(null)
 const panelDivider = ref(null)
+const resultsTable = ref(null)
 let isResizingPanel = false
 
 const keywordGroups = useKeywordGroups(results)
@@ -176,6 +178,10 @@ const clearConfirmLabel = computed(() => {
 
 const isSidePanel = computed(() => {
   return window.location.pathname.includes('side-panel')
+})
+
+const exportData = computed(() => {
+  return resultsTable.value?.getFilteredData?.() || results.value
 })
 
 onMounted(async () => {

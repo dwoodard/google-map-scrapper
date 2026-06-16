@@ -51,6 +51,27 @@ let shouldScrollToBottom = true; // toggle for scroll behavior
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+function sanitizeValue(value) {
+  if (value === null || value === undefined) return 'N/A';
+  const str = String(value).trim();
+  if (str === '') return 'N/A';
+  // Replace newlines and multiple spaces with single space, trim again
+  return str.replace(/\s+/g, ' ').trim();
+}
+
+function sanitizeEntry(entry) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(entry)) {
+    // Sanitize all string fields
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeValue(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
 function extractKeyword() {
   const url = window.location.href;
 
@@ -595,22 +616,23 @@ async function phase1ScrollCollect() {
 async function mergeEntry(fullDetails) {
   return new Promise((resolve) => {
     chrome.storage.local.get(['results'], ({ results = [] }) => {
-      const placeId = fullDetails.placeId;
+      const sanitized = sanitizeEntry(fullDetails);
+      const placeId = sanitized.placeId;
 
       // Try to find existing partial with same placeId
       if (placeId && placeId !== 'N/A') {
         const existingIndex = results.findIndex(r => r.placeId === placeId);
         if (existingIndex !== -1) {
           // Update existing partial with full details
-          results[existingIndex] = { ...results[existingIndex], ...fullDetails };
-          console.log(`[Maps Scraper] Merged details into existing partial: ${fullDetails.name}`);
+          results[existingIndex] = { ...results[existingIndex], ...sanitized };
+          console.log(`[Maps Scraper] Merged details into existing partial: ${sanitized.name}`);
           chrome.storage.local.set({ results }, resolve);
           return;
         }
       }
 
       // No existing partial found, save as new complete entry
-      results.push(fullDetails);
+      results.push(sanitized);
       chrome.storage.local.set({ results }, resolve);
     });
   });
@@ -619,10 +641,11 @@ async function mergeEntry(fullDetails) {
 async function saveEntry(entry) {
   return new Promise((resolve) => {
     chrome.storage.local.get(['results'], ({ results = [] }) => {
+      const sanitized = sanitizeEntry(entry);
       // Check for duplicate by Place ID (unique identifier) instead of name
-      const exists = results.some(r => r.placeId && r.placeId === entry.placeId);
+      const exists = results.some(r => r.placeId && r.placeId === sanitized.placeId);
       if (!exists) {
-        results.push(entry);
+        results.push(sanitized);
         chrome.storage.local.set({ results }, resolve);
       } else {
         resolve();
