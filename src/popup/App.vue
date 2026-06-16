@@ -212,8 +212,11 @@ async function handleBulkScrape(options = {}) {
   messaging.isScraping.value = true
   messaging.progress.value = { done: 0, total: 0 }
 
+  // Get the current filter from results table
+  const statusFilter = resultsTable.value?.statusFilter || 'all'
+
   // Then send the message (don't await so UI updates immediately)
-  messaging.bulkScrape(options)
+  messaging.bulkScrape({ ...options, statusFilter })
 }
 
 async function handleStopScrape() {

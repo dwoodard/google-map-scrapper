@@ -255,7 +255,7 @@ watch([statusFilter, sortColumn, sortDirection], () => {
   })
 }, { deep: true })
 
-defineExpose({ getFilteredData })
+defineExpose({ getFilteredData, statusFilter })
 </script>
 
 <style scoped>

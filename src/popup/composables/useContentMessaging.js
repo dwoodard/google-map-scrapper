@@ -26,7 +26,8 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
   function bulkScrape(options = {}) {
     return sendToContentScript({
       type: 'BULK_SCRAPE',
-      scrollToBottom: options.scrollToBottom !== false  // default true
+      scrollToBottom: options.scrollToBottom !== false,  // default true
+      statusFilter: options.statusFilter || 'all'  // 'all', 'enriched', 'pending'
     })
   }
 

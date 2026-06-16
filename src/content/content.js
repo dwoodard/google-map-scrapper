@@ -421,6 +421,15 @@ async function alreadyHasCompleteData(placeId) {
   });
 }
 
+async function isAlreadyEnriched(placeId) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['results'], ({ results = [] }) => {
+      const existing = results.find(r => r.placeId === placeId);
+      resolve(existing && existing.source === 'bulk');
+    });
+  });
+}
+
 async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
   console.log(`[Maps Scraper] Attempting to enrich: ${targetName} (${targetPlaceId})`);
   console.log(`[Maps Scraper] Maps URL: ${mapsUrl}`);
@@ -538,9 +547,11 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
 async function bulkScrape(options = {}) {
   isScraping = true;
   shouldScrollToBottom = options.scrollToBottom !== false;
+  const statusFilter = options.statusFilter || 'all';
   currentSessionKeyword = extractKeyword(); // Capture keyword ONCE at start
   console.log(`[Maps Scraper] Starting bulk scrape for keyword: "${currentSessionKeyword}"`);
   console.log(`[Maps Scraper] Scroll to bottom: ${shouldScrollToBottom}`);
+  console.log(`[Maps Scraper] Status filter: ${statusFilter}`);
 
   // Load already-captured names from storage to avoid clicking duplicates
   await loadCapturedNames();
@@ -569,6 +580,13 @@ async function bulkScrape(options = {}) {
       const placeId = extractPlaceIdFromListing(listing);
 
       console.log(`[Maps Scraper] [${i + 1}/${total}] Processing: "${name}"`);
+
+      // Skip based on filter
+      if (statusFilter === 'pending' && placeId !== 'N/A' && await isAlreadyEnriched(placeId)) {
+        console.log(`[Maps Scraper] ⏭️  Already enriched, skipping (filter: pending)`);
+        sendProgress(i + 1, total, null);
+        continue;
+      }
 
       // Only skip if we already have COMPLETE data for this placeId
       if (placeId !== 'N/A' && await alreadyHasCompleteData(placeId)) {
@@ -763,7 +781,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ success: true });
   } else if (message.type === 'BULK_SCRAPE') {
     if (!isScraping) {
-      bulkScrape({ scrollToBottom: message.scrollToBottom }).catch(err => console.error(err));
+      bulkScrape({
+        scrollToBottom: message.scrollToBottom,
+        statusFilter: message.statusFilter
+      }).catch(err => console.error(err));
     }
     sendResponse({ success: true });
   } else if (message.type === 'STOP_SCRAPE') {
