@@ -283,7 +283,16 @@ async function bulkScrape() {
       const clickTarget = listing.querySelector(CONFIG.SELECTORS.clickTarget) || listing;
       const currentUrl = window.location.href;
       console.log(`[Maps Scraper] 🖱️  Clicking... (URL before: ${currentUrl.substring(0, 100)}...)`);
+
+      // Prevent navigation to full page while allowing sidebar panel to load
+      const clickHandler = (e) => {
+        if (clickTarget.tagName === 'A') {
+          e.preventDefault();
+        }
+      };
+      clickTarget.addEventListener('click', clickHandler, true);
       clickTarget.click();
+      clickTarget.removeEventListener('click', clickHandler, true);
 
       // Wait for panel to load
       const delayAfter = rand(CONFIG.DETAIL_MIN_DELAY_MS, CONFIG.DETAIL_MAX_DELAY_MS);
