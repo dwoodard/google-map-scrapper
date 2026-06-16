@@ -2,7 +2,10 @@
   <header>
     <div class="header-top">
       <h1>Google Maps Scraper</h1>
-      <ExportDropdown :results="results" />
+      <div class="header-buttons">
+        <DataManager @clean-done="$emit('clean-done')" />
+        <ExportDropdown :results="results" />
+      </div>
     </div>
     <div class="toggle-section">
       <label title="Enable to auto-capture listings as you click them on Google Maps">
@@ -21,6 +24,7 @@
 
 <script setup>
 import ExportDropdown from './ExportDropdown.vue'
+import DataManager from './DataManager.vue'
 
 defineProps({
   active: Boolean,
@@ -28,7 +32,7 @@ defineProps({
   results: Array
 })
 
-defineEmits(['toggle-active'])
+defineEmits(['toggle-active', 'clean-done'])
 </script>
 
 <style scoped>
@@ -41,5 +45,11 @@ defineEmits(['toggle-active'])
 
 h1 {
   margin-bottom: 0;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 </style>

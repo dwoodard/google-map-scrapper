@@ -5,6 +5,7 @@
       :total="results.length"
       :results="results"
       @toggle-active="handleToggleActive"
+      @clean-done="handleCleanDone"
     />
 
     <ScrapeControls
@@ -176,5 +177,10 @@ async function handleConfirmClear() {
 
 async function handleSavePopupSize(size) {
   await storage.savePopupSize(size)
+}
+
+async function handleCleanDone() {
+  // Reload data after cleaning
+  await storage.load()
 }
 </script>
