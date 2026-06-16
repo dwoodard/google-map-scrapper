@@ -96,6 +96,7 @@ const props = defineProps({
 
 const isOpen = ref(false)
 const isRetrying = ref(false)
+const statusMessage = ref(null)
 
 const isValidUrl = computed(() => {
   return props.entry?.website && props.entry.website !== 'N/A' && props.entry.website.startsWith('http')
@@ -111,6 +112,7 @@ function close() {
 
 async function retryEnrichment() {
   isRetrying.value = true
+  statusMessage.value = null
   try {
     // Send message to content script to enrich this specific result by Place ID
     await chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
@@ -138,13 +140,26 @@ async function retryEnrichment() {
 
     if (updated) {
       Object.assign(props.entry, updated)
-      alert('✅ Enrichment complete! Details have been updated.')
+      statusMessage.value = {
+        type: 'success',
+        text: '✅ Data fetched successfully!'
+      }
+      // Auto-clear message after 3 seconds
+      setTimeout(() => {
+        statusMessage.value = null
+      }, 3000)
     } else {
-      alert('❌ Could not enrich. Make sure you\'re on the Google Maps search page.')
+      statusMessage.value = {
+        type: 'error',
+        text: '❌ Could not fetch data. Make sure you\'re on the Google Maps search page.'
+      }
     }
   } catch (err) {
-    console.error('Error retrying enrichment:', err)
-    alert('❌ Error during enrichment. Check console.')
+    console.error('Error fetching enrichment:', err)
+    statusMessage.value = {
+      type: 'error',
+      text: '❌ Error fetching data. Check console.'
+    }
   } finally {
     isRetrying.value = false
   }
@@ -190,6 +205,25 @@ defineExpose({ open, close })
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+.status-toast {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.status-toast.success {
+  background: #d4edda;
+  color: #155724;
+  border-bottom-color: #c3e6cb;
+}
+
+.status-toast.error {
+  background: #f8d7da;
+  color: #721c24;
+  border-bottom-color: #f5c6cb;
 }
 
 .close-btn {
