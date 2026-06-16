@@ -349,21 +349,48 @@ async function alreadyHasCompleteData(placeId) {
   });
 }
 
-async function enrichSingleResult(targetPlaceId, targetName) {
+async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
   console.log(`[Maps Scraper] Attempting to enrich: ${targetName} (${targetPlaceId})`);
 
   try {
-    // Find the listing with matching Place ID
-    const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
-    console.log(`[Maps Scraper] Found ${listings.length} total listings on page`);
+    // Use the Google Maps URL directly if available
+    if (mapsUrl && mapsUrl !== 'N/A') {
+      console.log(`[Maps Scraper] 🔗 Using Google Maps URL: ${mapsUrl}`);
 
+      // Navigate to the place URL
+      window.location.href = mapsUrl;
+
+      // Wait for page to load
+      await sleep(5000);
+
+      // Extract and merge details
+      const fullDetails = extractDetails();
+      fullDetails.source = 'bulk';
+
+      console.log(`[Maps Scraper] 📊 Extracted details from URL:`, {
+        name: fullDetails.name,
+        phone: fullDetails.phone,
+        website: fullDetails.website,
+        address: fullDetails.address,
+        hours: fullDetails.hours
+      });
+
+      await mergeEntry(fullDetails);
+      console.log(`[Maps Scraper] ✅ Single enrichment complete`);
+      return;
+    }
+
+    // Fallback: Find and click listing if URL not available
+    console.log(`[Maps Scraper] ⏳ Google Maps URL not available, searching for listing...`);
+
+    const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
     let targetListing = null;
+
     for (const listing of listings) {
       const placeId = extractPlaceIdFromListing(listing);
-      console.log(`[Maps Scraper] Checking listing placeId: ${placeId}`);
       if (placeId === targetPlaceId) {
         targetListing = listing;
-        console.log(`[Maps Scraper] ✅ Matched! Found target listing`);
+        console.log(`[Maps Scraper] ✅ Found listing`);
         break;
       }
     }
@@ -381,8 +408,6 @@ async function enrichSingleResult(targetPlaceId, targetName) {
 
     // Click the listing
     const clickTarget = targetListing.querySelector(CONFIG.SELECTORS.clickTarget) || targetListing;
-    console.log(`[Maps Scraper] Click target element:`, clickTarget.tagName);
-
     const clickHandler = (e) => {
       if (clickTarget.tagName === 'A') {
         e.preventDefault();
@@ -393,19 +418,12 @@ async function enrichSingleResult(targetPlaceId, targetName) {
     clickTarget.removeEventListener('click', clickHandler, true);
 
     console.log(`[Maps Scraper] ⏳ Waiting for detail panel to load...`);
-    // Wait longer for detail panel to fully load
     await sleep(5000);
-
-    // Verify detail panel opened by checking if we can find the name element
-    const nameEl = document.querySelector(CONFIG.SELECTORS.name);
-    if (nameEl) {
-      console.log(`[Maps Scraper] ✅ Detail panel loaded, name: ${nameEl.innerText}`);
-    } else {
-      console.log(`[Maps Scraper] ⚠️ Detail panel may not have loaded properly`);
-    }
 
     // Extract and merge details
     const fullDetails = extractDetails();
+    fullDetails.source = 'bulk';
+
     console.log(`[Maps Scraper] 📊 Extracted details:`, {
       name: fullDetails.name,
       phone: fullDetails.phone,
@@ -414,9 +432,7 @@ async function enrichSingleResult(targetPlaceId, targetName) {
       hours: fullDetails.hours
     });
 
-    fullDetails.source = 'bulk';
     await mergeEntry(fullDetails);
-
     console.log(`[Maps Scraper] ✅ Single enrichment complete`);
   } catch (err) {
     console.error('[Maps Scraper] Error enriching single result:', err);
@@ -663,8 +679,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true; // async response
   } else if (message.type === 'ENRICH_SINGLE') {
-    // Enrich a single result by finding and clicking it
-    enrichSingleResult(message.placeId, message.name).catch(err => console.error(err));
+    // Enrich a single result using Google Maps URL or by finding and clicking it
+    enrichSingleResult(message.placeId, message.name, message.mapsUrl).catch(err => console.error(err));
     sendResponse({ success: true });
   }
 });

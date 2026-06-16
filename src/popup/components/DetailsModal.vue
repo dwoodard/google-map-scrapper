@@ -128,7 +128,8 @@ async function retryEnrichment() {
       chrome.tabs.sendMessage(tabs[0].id, {
         type: 'ENRICH_SINGLE',
         placeId: props.entry.placeId,
-        name: props.entry.name
+        name: props.entry.name,
+        mapsUrl: props.entry.mapsUrl
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('[Modal] Error:', chrome.runtime.lastError);

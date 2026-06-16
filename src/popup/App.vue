@@ -33,13 +33,20 @@
       @bulk-scrape="handleBulkScrape"
     />
 
-    <div class="content">
+    <div class="content" ref="contentArea">
       <KeywordList
         :keyword-groups="keywordGroups"
         :selected-keyword="selectedKeyword"
         @select="handleSelectKeyword"
         @request-clear="showClearKeywordModal"
       />
+
+      <div
+        class="panel-divider"
+        ref="panelDivider"
+        @mousedown="startPanelResize"
+        title="Drag to resize panels"
+      ></div>
 
       <ResultsTable
         :selected-keyword="selectedKeyword"
@@ -73,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import ScrapeControls from './components/ScrapeControls.vue'
 import KeywordList from './components/KeywordList.vue'
@@ -91,6 +98,10 @@ const { results, popupSize } = storage
 const selectedKeyword = ref(null)
 const pendingClear = ref(null)
 const activeToggle = ref(false)
+const contentArea = ref(null)
+const panelDivider = ref(null)
+const leftPanelWidth = ref(40) // default 40%
+let isResizingPanel = false
 
 const keywordGroups = useKeywordGroups(results)
 
@@ -207,6 +218,45 @@ async function handleConfirmClear() {
 async function handleSavePopupSize(size) {
   await storage.savePopupSize(size)
 }
+
+function startPanelResize(e) {
+  isResizingPanel = true
+  const startX = e.clientX
+  const container = contentArea.value
+  if (!container) return
+
+  const handleMouseMove = (moveEvent) => {
+    if (!isResizingPanel) return
+
+    const deltaX = moveEvent.clientX - startX
+    const containerWidth = container.offsetWidth
+    const newLeftWidth = Math.max(25, Math.min(75, 40 + (deltaX / containerWidth) * 100))
+
+    leftPanelWidth.value = newLeftWidth
+    container.style.setProperty('--left-panel-width', newLeftWidth + '%')
+  }
+
+  const handleMouseUp = () => {
+    isResizingPanel = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+  }
+
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+  document.body.classList.add('resizing-panel')
+}
+
+onMounted(() => {
+  // ... existing onMounted code ...
+  if (contentArea.value) {
+    contentArea.value.style.setProperty('--left-panel-width', leftPanelWidth.value + '%')
+  }
+})
+
+onUnmounted(() => {
+  isResizingPanel = false
+})
 
 async function handleCleanDone() {
   // Reload data after cleaning

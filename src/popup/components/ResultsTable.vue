@@ -12,7 +12,7 @@
       <div class="search-box">
         <input
           v-model="searchQuery"
-          type="text"
+          type="search"
           placeholder="🔍 Search by name, phone, website..."
           class="search-input"
         />
