@@ -50,35 +50,14 @@ const website = computed(() => {
 })
 
 const statusBadge = computed(() => {
-  const hasPhone = props.entry.phone && props.entry.phone !== 'N/A'
-  const hasWebsite = props.entry.website && props.entry.website !== 'N/A'
-  const hasAddress = props.entry.address && props.entry.address !== 'N/A'
-  const hasHours = props.entry.hours && props.entry.hours !== 'N/A'
-  const hasReviews = props.entry.reviews && props.entry.reviews !== 'N/A'
-
-  const completeFields = [hasPhone, hasWebsite, hasAddress, hasHours, hasReviews].filter(Boolean).length
-
-  // Enrichment status: has it been clicked (Phase 2)?
+  // Show phase-based status: did it go through Phase 2 (clicked)?
   const isEnriched = props.entry.source === 'bulk'
 
-  // Data completeness: how many fields are filled?
-  let dataStatus, statusClass
-  if (completeFields >= 4) {
-    dataStatus = '✓ Complete'
-    statusClass = 'status-full'
-  } else if (completeFields >= 2) {
-    dataStatus = '◐ Partial'
-    statusClass = 'status-partial'
+  if (isEnriched) {
+    return `<span class="status-badge status-full">✓ Complete</span>`
   } else {
-    dataStatus = '⏳ Basic'
-    statusClass = 'status-basic'
+    return `<span class="status-badge status-partial">◐ Partial ⌛</span>`
   }
-
-  // Show enrichment status if not yet enriched
-  const enrichmentBadge = isEnriched ? '' : ' ⌛'
-  const statusText = `${dataStatus}${enrichmentBadge}`
-
-  return `<span class="status-badge ${statusClass}">${statusText}</span>`
 })
 
 function truncate(str, len) {

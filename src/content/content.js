@@ -262,27 +262,78 @@ function extractPlaceIdFromListing(listingEl) {
 }
 
 function extractPartialListing(listingEl) {
-  // Extract minimal data from listing without clicking
+  // Extract data from listing preview card without clicking
   const name = listingEl.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
   const placeId = extractPlaceIdFromListing(listingEl);
+
+  // Extract phone - most reliable field on listing
+  let phone = 'N/A';
+  const phoneEl = listingEl.querySelector('.UsdlK');
+  if (phoneEl) phone = phoneEl.innerText.trim();
+
+  // Extract website - look for website link
+  let website = 'N/A';
+  const websiteLink = listingEl.querySelector('a[aria-label*="website" i]');
+  if (websiteLink && websiteLink.href) website = websiteLink.href;
+
+  // Extract rating from aria-label (e.g., "4.9 stars 200 Reviews")
+  let rating = 'N/A';
+  let reviews = 'N/A';
+  const ratingEl = listingEl.querySelector('[role="img"][aria-label*="star"]');
+  if (ratingEl) {
+    const ariaLabel = ratingEl.getAttribute('aria-label') || '';
+    const ratingMatch = ariaLabel.match(/([\d.]+)\s+star/i);
+    if (ratingMatch) rating = ratingMatch[1];
+    const reviewsMatch = ariaLabel.match(/(\d+)\s+review/i);
+    if (reviewsMatch) reviews = reviewsMatch[1];
+  }
+
+  // Extract category and address - grab text before phone
+  let category = 'N/A';
+  let address = 'N/A';
+  let status = 'N/A';
+  let hours = 'N/A';
+
+  const allSpans = Array.from(listingEl.querySelectorAll('span'));
+  // Look for the category/address/status section (typically has multiple inline elements)
+  for (let i = 0; i < allSpans.length; i++) {
+    const text = allSpans[i].innerText?.trim() || '';
+
+    // Category is usually first meaningful text (short, no numbers, no punctuation)
+    if (category === 'N/A' && text.length > 0 && text.length < 40 && !text.match(/^\d|·|\$|^[\(]/)) {
+      category = text;
+    }
+
+    // Address typically has numbers and street indicators
+    if (address === 'N/A' && text.match(/\d+/)) {
+      address = text;
+    }
+
+    // Status is Open/Closed
+    if (status === 'N/A' && text.match(/^(Open|Closed)/i)) {
+      status = text.split('·')[0].trim();
+      const hoursPart = text.split('·').slice(1).join(' · ').trim();
+      if (hoursPart) hours = hoursPart;
+    }
+  }
 
   return {
     name,
     placeId,
-    category: 'N/A',
-    rating: 'N/A',
-    reviews: 'N/A',
-    address: 'N/A',
-    website: 'N/A',
-    phone: 'N/A',
+    category,
+    rating,
+    reviews,
+    address,
+    website,
+    phone,
     plusCode: 'N/A',
-    hours: 'N/A',
-    status: 'N/A',
+    hours,
+    status,
     priceRange: 'N/A',
     latitude: 'N/A',
     longitude: 'N/A',
     mapsUrl: 'N/A',
-    isSponsored: false, // Can't detect from listing preview
+    isSponsored: false,
     keyword: currentSessionKeyword,
     capturedAt: new Date().toISOString(),
     source: 'partial'
@@ -472,6 +523,11 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
     });
 
     await mergeEntry(fullDetails);
+    console.log(`[Maps Scraper] 📤 Sending ENRICHMENT_COMPLETE message:`, {
+      name: fullDetails.name,
+      source: fullDetails.source,
+      placeId: fullDetails.placeId
+    });
     sendMessage({ type: 'ENRICHMENT_COMPLETE', entry: fullDetails });
     console.log(`[Maps Scraper] ✅ Single enrichment complete`);
   } catch (err) {

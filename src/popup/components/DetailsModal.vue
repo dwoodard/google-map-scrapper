@@ -145,12 +145,20 @@ async function retryEnrichment() {
   let enrichmentResult = null
 
   // Listen for enrichment completion message from content script
-  const listener = (message) => {
-    if (message.type === 'ENRICHMENT_COMPLETE' && message.entry?.placeId === props.entry.placeId) {
-      console.log('[Modal] Received enrichment completion message:', message.entry);
-      enrichmentCompleted = true
-      enrichmentResult = message.entry
-      chrome.runtime.onMessage.removeListener(listener)
+  const listener = (message, sender) => {
+    console.log('[Modal] Message received:', message.type, 'from:', sender.url);
+    if (message.type === 'ENRICHMENT_COMPLETE') {
+      console.log('[Modal] Checking placeId match:', {
+        messageId: message.entry?.placeId,
+        entryId: props.entry.placeId,
+        match: message.entry?.placeId === props.entry.placeId
+      });
+      if (message.entry?.placeId === props.entry.placeId) {
+        console.log('[Modal] ✅ Enrichment message matches! Data:', message.entry);
+        enrichmentCompleted = true
+        enrichmentResult = message.entry
+        chrome.runtime.onMessage.removeListener(listener)
+      }
     }
   }
   chrome.runtime.onMessage.addListener(listener)
