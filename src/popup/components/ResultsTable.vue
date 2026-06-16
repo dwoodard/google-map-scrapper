@@ -48,7 +48,7 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody id="tableBody">
+        <tbody id="tableBody" ref="tableBody">
           <ResultsTableRow
             v-for="entry in filteredTableData"
             :key="entry.placeId || entry.name"
@@ -61,8 +61,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import ResultsTableRow from './ResultsTableRow.vue'
+
+const tableBody = ref(null)
 
 const props = defineProps({
   selectedKeyword: String,
@@ -75,8 +77,6 @@ const tableData = computed(() => {
   }
   return props.keywordGroups[props.selectedKeyword]
 })
-
-import { ref } from 'vue'
 
 const searchQuery = ref('')
 
@@ -112,5 +112,16 @@ const tableStats = computed(() => {
 
 const isEmpty = computed(() => {
   return !props.selectedKeyword || tableData.value.length === 0
+})
+
+// Auto-scroll to latest result
+watch(filteredTableData, async () => {
+  await nextTick()
+  if (tableBody.value && filteredTableData.value.length > 0) {
+    const lastRow = tableBody.value.lastElementChild
+    if (lastRow) {
+      lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }
 })
 </script>
