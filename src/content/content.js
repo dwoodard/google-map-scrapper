@@ -365,8 +365,8 @@ async function phase1ScrollCollect() {
 async function saveEntry(entry) {
   return new Promise((resolve) => {
     chrome.storage.local.get(['results'], ({ results = [] }) => {
-      // Check for duplicate by name
-      const exists = results.some(r => r.name.toLowerCase() === entry.name.toLowerCase());
+      // Check for duplicate by Place ID (unique identifier) instead of name
+      const exists = results.some(r => r.placeId && r.placeId === entry.placeId);
       if (!exists) {
         results.push(entry);
         chrome.storage.local.set({ results }, resolve);
