@@ -1,10 +1,11 @@
 <template>
   <div
     class="keyword-item"
-    :class="{ active: isSelected }"
+    :class="{ active: isSelected, scraping: isActive }"
     @click="$emit('select', keyword)"
   >
     <div class="keyword-info">
+      <span v-if="isActive" class="scraping-indicator">⟳</span>
       <span class="keyword-name">{{ keyword }}</span>
       <span class="keyword-count">{{ count }} result{{ count !== 1 ? 's' : '' }}</span>
     </div>
@@ -19,10 +20,13 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   keyword: String,
   count: Number,
-  isSelected: Boolean
+  isSelected: Boolean,
+  isActive: Boolean
 })
 
 defineEmits(['select', 'request-clear'])

@@ -1,5 +1,5 @@
 <template>
-  <tr @click="openModal" style="cursor: pointer;">
+  <tr @click="handleRowClick($event)" style="cursor: pointer;" :class="isCurrentKeyword ? 'listing-on-page' : 'listing-off-page'">
     <td :title="entry.name">{{ truncate(entry.name, 20) }}</td>
     <td :title="phoneDisplay">{{ truncate(phoneDisplay, 15) }}</td>
     <td :title="entry.website">
@@ -27,10 +27,15 @@ import DetailsModal from './DetailsModal.vue'
 const modal = ref(null)
 
 const props = defineProps({
-  entry: Object
+  entry: Object,
+  selectedKeyword: String
 })
 
-const emit = defineEmits(['delete'])
+const emit = defineEmits(['delete', 'scroll-to-listing'])
+
+const isCurrentKeyword = computed(() => {
+  return props.entry?.keyword === props.selectedKeyword
+})
 
 const phoneDisplay = computed(() => {
   return (props.entry.phone && props.entry.phone !== 'N/A') ? props.entry.phone : '-'
@@ -66,6 +71,18 @@ function truncate(str, len) {
 
 function openModal() {
   modal.value?.open()
+}
+
+function handleRowClick(event) {
+  // Cmd/Ctrl click: just scroll, don't open modal
+  if (event.metaKey || event.ctrlKey) {
+    emit('scroll-to-listing', props.entry)
+    return
+  }
+
+  // Normal click: scroll and open modal
+  emit('scroll-to-listing', props.entry)
+  openModal()
 }
 
 function handleDelete(entry) {

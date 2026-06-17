@@ -13,7 +13,12 @@
     <div v-if="isScraping" class="scraping-banner">
       <div class="scraping-spinner">⟳</div>
       <div class="scraping-text">
-        <div class="scraping-title">Scraping in progress...</div>
+        <div class="scraping-title">
+          Scraping in progress...
+          <span v-if="messaging.activeKeyword.value" class="active-keyword">
+            "{{ messaging.activeKeyword.value }}"
+          </span>
+        </div>
         <div class="scraping-details">
           <span class="progress-count">{{ progress.done }} / {{ progress.total }}</span>
           <span class="separator">•</span>
@@ -39,6 +44,7 @@
       <KeywordList
         :keyword-groups="keywordGroups"
         :selected-keyword="selectedKeyword"
+        :active-keyword="messaging.activeKeyword.value"
         @select="handleSelectKeyword"
         @request-clear="showClearKeywordModal"
       />
@@ -55,6 +61,7 @@
         :selected-keyword="selectedKeyword"
         :keyword-groups="keywordGroups"
         @delete="handleDeleteItem"
+        @scroll-to-listing="handleScrollToListing"
       />
     </div>
 
@@ -300,6 +307,11 @@ onUnmounted(() => {
 async function handleCleanDone() {
   // Reload data after cleaning
   await storage.load()
+}
+
+async function handleScrollToListing(entry) {
+  // Scroll the listing into view on the Google Maps page
+  messaging.scrollToListing(entry.placeId, entry.name)
 }
 
 async function handleDeleteItem(entry) {

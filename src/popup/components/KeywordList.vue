@@ -13,6 +13,7 @@
         :keyword="keyword"
         :count="keywordGroups[keyword].length"
         :isSelected="selectedKeyword === keyword"
+        :isActive="activeKeyword === keyword"
         @select="$emit('select', keyword)"
         @request-clear="$emit('request-clear', keyword)"
       />
@@ -26,7 +27,8 @@ import KeywordListItem from './KeywordListItem.vue'
 
 const props = defineProps({
   keywordGroups: Object,
-  selectedKeyword: String
+  selectedKeyword: String,
+  activeKeyword: String
 })
 
 const keywords = computed(() => {

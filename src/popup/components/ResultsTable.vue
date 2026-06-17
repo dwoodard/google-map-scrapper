@@ -87,7 +87,9 @@
             v-for="entry in filteredTableData"
             :key="entry.placeId || entry.name"
             :entry="entry"
+            :selected-keyword="selectedKeyword"
             @delete="handleDelete"
+            @scroll-to-listing="(entry) => emit('scroll-to-listing', entry)"
           />
         </tbody>
       </table>
@@ -107,7 +109,7 @@ const props = defineProps({
   keywordGroups: Object
 })
 
-const emit = defineEmits(['delete'])
+const emit = defineEmits(['delete', 'scroll-to-listing'])
 
 const tableData = computed(() => {
   if (!props.selectedKeyword || !props.keywordGroups[props.selectedKeyword]) {

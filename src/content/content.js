@@ -262,21 +262,22 @@ function extractPlaceIdFromListing(listingEl) {
 }
 
 function extractPartialListing(listingEl) {
-  // Extract data from listing preview card without clicking
+  // Phase 1: Extract only reliable fields from listing card
+  // Detailed fields (address, hours, status, coords, plus code) will be filled in Phase 2
   const name = listingEl.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
   const placeId = extractPlaceIdFromListing(listingEl);
 
-  // Extract phone - most reliable field on listing
+  // Phone - reliable on listing cards
   let phone = 'N/A';
   const phoneEl = listingEl.querySelector('.UsdlK');
   if (phoneEl) phone = phoneEl.innerText.trim();
 
-  // Extract website - look for website link
+  // Website - look for website link
   let website = 'N/A';
   const websiteLink = listingEl.querySelector('a[aria-label*="website" i]');
   if (websiteLink && websiteLink.href) website = websiteLink.href;
 
-  // Extract rating from aria-label (e.g., "4.9 stars 200 Reviews")
+  // Rating and reviews from aria-label
   let rating = 'N/A';
   let reviews = 'N/A';
   const ratingEl = listingEl.querySelector('[role="img"][aria-label*="star"]');
@@ -288,47 +289,19 @@ function extractPartialListing(listingEl) {
     if (reviewsMatch) reviews = reviewsMatch[1];
   }
 
-  // Extract category and address - grab text before phone
-  let category = 'N/A';
-  let address = 'N/A';
-  let status = 'N/A';
-  let hours = 'N/A';
-
-  const allSpans = Array.from(listingEl.querySelectorAll('span'));
-  // Look for the category/address/status section (typically has multiple inline elements)
-  for (let i = 0; i < allSpans.length; i++) {
-    const text = allSpans[i].innerText?.trim() || '';
-
-    // Category is usually first meaningful text (short, no numbers, no punctuation)
-    if (category === 'N/A' && text.length > 0 && text.length < 40 && !text.match(/^\d|·|\$|^[\(]/)) {
-      category = text;
-    }
-
-    // Address typically has numbers and street indicators
-    if (address === 'N/A' && text.match(/\d+/)) {
-      address = text;
-    }
-
-    // Status is Open/Closed
-    if (status === 'N/A' && text.match(/^(Open|Closed)/i)) {
-      status = text.split('·')[0].trim();
-      const hoursPart = text.split('·').slice(1).join(' · ').trim();
-      if (hoursPart) hours = hoursPart;
-    }
-  }
-
+  // Leave unreliable fields for Phase 2 enrichment
   return {
     name,
     placeId,
-    category,
+    category: 'N/A',
     rating,
     reviews,
-    address,
+    address: 'N/A',
     website,
     phone,
     plusCode: 'N/A',
-    hours,
-    status,
+    hours: 'N/A',
+    status: 'N/A',
     priceRange: 'N/A',
     latitude: 'N/A',
     longitude: 'N/A',
@@ -428,6 +401,46 @@ async function isAlreadyEnriched(placeId) {
       resolve(existing && existing.source === 'bulk');
     });
   });
+}
+
+async function scrollListingIntoView(targetPlaceId, targetName) {
+  console.log(`[Maps Scraper] Scrolling listing into view: ${targetName} (${targetPlaceId})`);
+
+  try {
+    // Find the listing by placeId
+    const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
+    let targetListing = null;
+
+    for (const listing of listings) {
+      const placeId = extractPlaceIdFromListing(listing);
+      if (placeId === targetPlaceId) {
+        targetListing = listing;
+        console.log(`[Maps Scraper] Found listing, scrolling into view...`);
+        break;
+      }
+    }
+
+    if (!targetListing) {
+      console.log(`[Maps Scraper] Listing not found on page`);
+      return;
+    }
+
+    // Scroll into view
+    targetListing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Highlight it temporarily
+    const originalBg = targetListing.style.backgroundColor;
+    targetListing.style.backgroundColor = 'rgba(26, 115, 232, 0.1)';
+    targetListing.style.transition = 'background-color 0.3s';
+
+    setTimeout(() => {
+      targetListing.style.backgroundColor = originalBg;
+    }, 2000);
+
+    console.log(`[Maps Scraper] ✅ Scrolled listing into view`);
+  } catch (err) {
+    console.error('[Maps Scraper] Error scrolling listing:', err);
+  }
 }
 
 async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
@@ -553,6 +566,9 @@ async function bulkScrape(options = {}) {
   console.log(`[Maps Scraper] Scroll to bottom: ${shouldScrollToBottom}`);
   console.log(`[Maps Scraper] Status filter: ${statusFilter}`);
 
+  // Send current keyword to popup
+  sendMessage({ type: 'KEYWORD_ACTIVE', keyword: currentSessionKeyword });
+
   // Load already-captured names from storage to avoid clicking duplicates
   await loadCapturedNames();
 
@@ -583,13 +599,13 @@ async function bulkScrape(options = {}) {
 
       // Skip based on filter
       if (statusFilter === 'pending' && placeId !== 'N/A' && await isAlreadyEnriched(placeId)) {
-        console.log(`[Maps Scraper] ⏭️  Already enriched, skipping (filter: pending)`);
+        console.log(`[Maps Scraper] ⏭️  Already attempted enrichment, skipping (filter: pending)`);
         sendProgress(i + 1, total, null);
         continue;
       }
 
-      // Only skip if we already have COMPLETE data for this placeId
-      if (placeId !== 'N/A' && await alreadyHasCompleteData(placeId)) {
+      // For other filters, skip if we already have complete data
+      if (statusFilter !== 'pending' && placeId !== 'N/A' && await alreadyHasCompleteData(placeId)) {
         console.log(`[Maps Scraper] ⏭️  Already have complete data, skipping`);
         sendProgress(i + 1, total, null);
         continue;
@@ -641,6 +657,12 @@ async function bulkScrape(options = {}) {
         listing.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
 
+      // Send current page listings to keep it updated during Phase 2
+      const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
+      const pageListings = Array.from(listings).map(listing => extractPlaceIdFromListing(listing)).filter(id => id !== 'N/A');
+      sendMessage({ type: 'PAGE_LISTINGS', placeIds: pageListings });
+
+      console.log(`[Maps Scraper] Entry placeId: ${fullDetails.placeId}`);
       sendProgress(i + 1, total, fullDetails);
     }
   } catch (err) {
@@ -665,29 +687,15 @@ async function phase1ScrollCollect() {
     const listings = document.querySelectorAll(CONFIG.SELECTORS.listing);
     const count = listings.length;
 
-    if (count !== prevCount) {
-      // New listings found — capture them as partials
-      for (let i = prevCount; i < count; i++) {
-        const listing = listings[i];
-        const name = listing.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
-
-        if (!alreadyCaptured(name)) {
-          const partial = extractPartialListing(listing);
-          markCaptured(partial.name);
-          await saveEntry(partial);
-          console.log(`[Maps Scraper] Phase 1 captured (partial): ${partial.name}`);
-          // Send progress so popup shows results in real-time
-          sendProgress(i + 1, count, partial);
-        }
-      }
-    }
-
     if (count === prevCount) {
-      // No new listings — stable
       break;
     }
 
     prevCount = count;
+
+    // Send current page listings to popup
+    const pageListings = Array.from(listings).map(listing => extractPlaceIdFromListing(listing)).filter(id => id !== 'N/A');
+    sendMessage({ type: 'PAGE_LISTINGS', placeIds: pageListings });
 
     // Only scroll if shouldScrollToBottom is enabled
     if (shouldScrollToBottom) {
@@ -800,6 +808,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.type === 'ENRICH_SINGLE') {
     // Enrich a single result using Google Maps URL or by finding and clicking it
     enrichSingleResult(message.placeId, message.name, message.mapsUrl).catch(err => console.error(err));
+    sendResponse({ success: true });
+  } else if (message.type === 'SCROLL_TO_LISTING') {
+    // Scroll a listing into view on the Maps page
+    scrollListingIntoView(message.placeId, message.name).catch(err => console.error(err));
     sendResponse({ success: true });
   }
 });

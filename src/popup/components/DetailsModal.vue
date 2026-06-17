@@ -230,14 +230,18 @@ async function retryEnrichment() {
           statusMessage.value = null
         }, 4000)
       } else if (updated) {
-        // Still partial
-        console.log(`[Modal] Data still partial - source: ${updated.source}`, updated);
+        // Accept partial data
+        console.log(`[Modal] Data updated with available fields - source: ${updated.source}`, updated);
+        Object.assign(props.entry, updated)
         const filledFields = [updated.phone, updated.website, updated.address, updated.hours]
           .filter(f => f && f !== 'N/A').length
         statusMessage.value = {
-          type: 'error',
-          text: `⚠️ Incomplete data (${filledFields}/4 fields). Refresh the Google Maps page and try again.`
+          type: 'success',
+          text: `✅ Data updated (${filledFields}/4 fields available)`
         }
+        setTimeout(() => {
+          statusMessage.value = null
+        }, 4000)
       } else {
         statusMessage.value = {
           type: 'error',
