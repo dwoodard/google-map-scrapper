@@ -119,7 +119,6 @@ const tableData = computed(() => {
 })
 
 const searchQuery = ref('')
-const lastUpdatedId = ref(null)
 const sortColumn = ref('name')
 const sortDirection = ref('asc')
 const statusFilter = ref('all')

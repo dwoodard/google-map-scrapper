@@ -6,7 +6,6 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting",
     "sidePanel"
   ],
   "action": {
@@ -16,8 +15,6 @@
   "side_panel": {
     "default_path": "src/side-panel/index.html"
   },
-  "chrome_url_overrides": {},
-  "web_accessible_resources": [],
   "host_permissions": [
     "https://www.google.com/maps/*"
   ],

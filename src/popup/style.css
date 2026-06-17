@@ -164,28 +164,6 @@ input[type="checkbox"] {
   color: #333;
 }
 
-.search-box {
-  padding: 8px;
-  border-bottom: 1px solid #e0e0e0;
-  flex-shrink: 0;
-}
-
-.search-input {
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
-}
-
 .keywords-list {
   flex: 1;
   overflow-y: auto;
@@ -342,32 +320,6 @@ input[type="checkbox"] {
   box-shadow: 0 2px 4px rgba(197, 34, 31, 0.2);
 }
 
-.btn-footer {
-  flex: 1;
-  background: #f5f5f5;
-  color: #1a73e8;
-  border: 1px solid #e0e0e0;
-  font-size: 12px;
-}
-
-.btn-footer:hover {
-  background: #efefef;
-}
-
-.search-info {
-  padding: 8px 16px;
-  font-size: 12px;
-  color: #666;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f9f9f9;
-}
-
-.keyword {
-  font-weight: 600;
-  color: #333;
-  font-style: italic;
-}
-
 .table-wrapper {
   flex: 1;
   border-bottom: 1px solid #e0e0e0;
@@ -415,7 +367,7 @@ input[type="checkbox"] {
   gap: 16px;
   flex-wrap: wrap;
   position: sticky;
-  top: 56px;
+  top: 56px; /* Height of search box */
   z-index: 9;
 }
 
@@ -488,10 +440,6 @@ tbody tr:hover {
   cursor: pointer;
 }
 
-tbody tr.full td::after {
-  content: '';
-}
-
 .status-badge {
   display: inline-block;
   padding: 2px 6px;
@@ -508,16 +456,6 @@ tbody tr.full td::after {
 .status-partial {
   background: #cfe8fc;
   color: #084298;
-}
-
-.status-basic {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-error {
-  background: #f8d7da;
-  color: #721c24;
 }
 
 .empty-state {
@@ -559,14 +497,6 @@ tbody tr.full td::after {
   background: #1a73e8;
   width: 0%;
   transition: width 0.3s ease;
-}
-
-footer {
-  padding: 12px 16px;
-  display: flex;
-  gap: 8px;
-  border-top: 1px solid #e0e0e0;
-  background: white;
 }
 
 /* Modal styles */
@@ -737,15 +667,6 @@ body.resizing-panel {
   font-size: 18px;
   animation: spin 1s linear infinite;
   flex-shrink: 0;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .scraping-text {

@@ -43,8 +43,6 @@ onMounted(() => {
     htmlElement.style.width = newWidth + 'px'
     htmlElement.style.height = newHeight + 'px'
 
-    console.log(`[Resize] deltaY: ${deltaY}, newHeight: ${newHeight}px`)
-
     if (props.onSaveSize) {
       props.onSaveSize({ width: newWidth, height: newHeight })
     }

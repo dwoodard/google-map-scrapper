@@ -36,7 +36,6 @@ const CONFIG = {
 // State
 // ============================================================================
 
-let isActiveListening = false;
 let isScraping = false;
 let panelObserver = null;
 let debounceTimer = null;
@@ -122,11 +121,6 @@ function extractPlaceId() {
   const url = window.location.href;
   const placeIdMatch = url.match(/0x[a-f0-9]+/i);
   return placeIdMatch ? placeIdMatch[0] : 'N/A';
-}
-
-function extractMapsUrl() {
-  // Return current Maps URL
-  return window.location.href;
 }
 
 function extractOpenClosedStatus() {
@@ -218,7 +212,7 @@ function extractDetails() {
   const status = extractOpenClosedStatus();
   const priceRange = extractPriceRange();
   const placeId = extractPlaceId();
-  const mapsUrl = extractMapsUrl();
+  const mapsUrl = window.location.href;
 
   return {
     name,
@@ -259,58 +253,6 @@ function extractPlaceIdFromListing(listingEl) {
     if (placeIdMatch) return placeIdMatch[0];
   }
   return 'N/A';
-}
-
-function extractPartialListing(listingEl) {
-  // Phase 1: Extract only reliable fields from listing card
-  // Detailed fields (address, hours, status, coords, plus code) will be filled in Phase 2
-  const name = listingEl.querySelector(CONFIG.SELECTORS.listingName)?.innerText?.trim() || 'N/A';
-  const placeId = extractPlaceIdFromListing(listingEl);
-
-  // Phone - reliable on listing cards
-  let phone = 'N/A';
-  const phoneEl = listingEl.querySelector('.UsdlK');
-  if (phoneEl) phone = phoneEl.innerText.trim();
-
-  // Website - look for website link
-  let website = 'N/A';
-  const websiteLink = listingEl.querySelector('a[aria-label*="website" i]');
-  if (websiteLink && websiteLink.href) website = websiteLink.href;
-
-  // Rating and reviews from aria-label
-  let rating = 'N/A';
-  let reviews = 'N/A';
-  const ratingEl = listingEl.querySelector('[role="img"][aria-label*="star"]');
-  if (ratingEl) {
-    const ariaLabel = ratingEl.getAttribute('aria-label') || '';
-    const ratingMatch = ariaLabel.match(/([\d.]+)\s+star/i);
-    if (ratingMatch) rating = ratingMatch[1];
-    const reviewsMatch = ariaLabel.match(/(\d+)\s+review/i);
-    if (reviewsMatch) reviews = reviewsMatch[1];
-  }
-
-  // Leave unreliable fields for Phase 2 enrichment
-  return {
-    name,
-    placeId,
-    category: 'N/A',
-    rating,
-    reviews,
-    address: 'N/A',
-    website,
-    phone,
-    plusCode: 'N/A',
-    hours: 'N/A',
-    status: 'N/A',
-    priceRange: 'N/A',
-    latitude: 'N/A',
-    longitude: 'N/A',
-    mapsUrl: 'N/A',
-    isSponsored: false,
-    keyword: currentSessionKeyword,
-    capturedAt: new Date().toISOString(),
-    source: 'partial'
-  };
 }
 
 // ============================================================================
@@ -374,35 +316,6 @@ async function loadCapturedNames() {
   });
 }
 
-async function alreadyHasCompleteData(placeId) {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['results'], ({ results = [] }) => {
-      const existing = results.find(r => r.placeId === placeId);
-      if (!existing) {
-        resolve(false);
-        return;
-      }
-      // Check if it's complete (has phone, website, address, or hours - not just N/A)
-      const isComplete = existing.source === 'bulk' || (
-        (existing.phone && existing.phone !== 'N/A') ||
-        (existing.website && existing.website !== 'N/A') ||
-        (existing.address && existing.address !== 'N/A') ||
-        (existing.hours && existing.hours !== 'N/A')
-      );
-      resolve(isComplete);
-    });
-  });
-}
-
-async function isAlreadyEnriched(placeId) {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['results'], ({ results = [] }) => {
-      const existing = results.find(r => r.placeId === placeId);
-      resolve(existing && existing.source === 'bulk');
-    });
-  });
-}
-
 async function scrollListingIntoView(targetPlaceId, targetName) {
   console.log(`[Maps Scraper] Scrolling listing into view: ${targetName} (${targetPlaceId})`);
 
@@ -448,43 +361,9 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
   console.log(`[Maps Scraper] Maps URL: ${mapsUrl}`);
 
   try {
-    // Use the Google Maps URL directly if available
-    if (mapsUrl && mapsUrl !== 'N/A') {
-      console.log(`[Maps Scraper] 🔗 Using Google Maps URL to navigate...`);
-
-      // Navigate to the place URL
-      window.location.href = mapsUrl;
-
-      // Wait for page to load - use longer timeout to ensure page loads
-      console.log(`[Maps Scraper] ⏳ Waiting 7 seconds for page to load...`);
-      await sleep(7000);
-
-      // Extract and merge details
-      const fullDetails = extractDetails();
-      fullDetails.source = 'bulk';
-
-      console.log(`[Maps Scraper] 📊 Extracted details from URL:`, {
-        name: fullDetails.name,
-        category: fullDetails.category,
-        phone: fullDetails.phone,
-        website: fullDetails.website,
-        address: fullDetails.address,
-        hours: fullDetails.hours,
-        placeId: fullDetails.placeId
-      });
-
-      console.log(`[Maps Scraper] 💾 Merging entry to storage...`);
-      await mergeEntry(fullDetails);
-      console.log(`[Maps Scraper] 📤 Sending enrichment complete message...`);
-      sendMessage({ type: 'ENRICHMENT_COMPLETE', entry: fullDetails });
-      console.log(`[Maps Scraper] ✅ Single enrichment complete`);
-      return;
-    }
-
     // Check if detail panel is already open (user clicked listing manually)
     let panelContainer = document.querySelector(CONFIG.SELECTORS.panelContainer)
                       || document.querySelector(CONFIG.SELECTORS.panelContainerAlt);
-    let waitedForPanel = false;
 
     if (panelContainer && document.querySelector(CONFIG.SELECTORS.name)) {
       console.log(`[Maps Scraper] ✅ Detail panel already open, extracting data now...`);
@@ -529,7 +408,6 @@ async function enrichSingleResult(targetPlaceId, targetName, mapsUrl) {
 
       console.log(`[Maps Scraper] ⏳ Waiting for detail panel to load...`);
       await sleep(5000);
-      waitedForPanel = true;
     }
 
     // Extract and merge details
@@ -572,6 +450,14 @@ async function bulkScrape(options = {}) {
   // Load already-captured names from storage to avoid clicking duplicates
   await loadCapturedNames();
 
+  // Pre-load results into a map for fast lookups in Phase 2
+  const placeIdMap = await new Promise((resolve) => {
+    chrome.storage.local.get(['results'], ({ results = [] }) => {
+      const map = new Map(results.map(r => [r.placeId, r]));
+      resolve(map);
+    });
+  });
+
   try {
     // Phase 1: Scroll and collect all listings
     const listings = await phase1ScrollCollect();
@@ -597,18 +483,30 @@ async function bulkScrape(options = {}) {
 
       console.log(`[Maps Scraper] [${i + 1}/${total}] Processing: "${name}"`);
 
-      // Skip based on filter
-      if (statusFilter === 'pending' && placeId !== 'N/A' && await isAlreadyEnriched(placeId)) {
-        console.log(`[Maps Scraper] ⏭️  Already attempted enrichment, skipping (filter: pending)`);
-        sendProgress(i + 1, total, null);
-        continue;
-      }
+      // Skip based on filter (using pre-loaded map for fast lookups)
+      if (placeId !== 'N/A') {
+        const existing = placeIdMap.get(placeId);
+        if (existing) {
+          if (statusFilter === 'pending' && existing.source === 'bulk') {
+            console.log(`[Maps Scraper] ⏭️  Already attempted enrichment, skipping (filter: pending)`);
+            sendProgress(i + 1, total, null);
+            continue;
+          }
 
-      // For other filters, skip if we already have complete data
-      if (statusFilter !== 'pending' && placeId !== 'N/A' && await alreadyHasCompleteData(placeId)) {
-        console.log(`[Maps Scraper] ⏭️  Already have complete data, skipping`);
-        sendProgress(i + 1, total, null);
-        continue;
+          if (statusFilter !== 'pending') {
+            const isComplete = existing.source === 'bulk' || (
+              (existing.phone && existing.phone !== 'N/A') ||
+              (existing.website && existing.website !== 'N/A') ||
+              (existing.address && existing.address !== 'N/A') ||
+              (existing.hours && existing.hours !== 'N/A')
+            );
+            if (isComplete) {
+              console.log(`[Maps Scraper] ⏭️  Already have complete data, skipping`);
+              sendProgress(i + 1, total, null);
+              continue;
+            }
+          }
+        }
       }
 
       // Human-like delay before clicking
@@ -642,7 +540,6 @@ async function bulkScrape(options = {}) {
       const fullDetails = extractDetails();
       console.log(`[Maps Scraper] ✅ Extracted: "${fullDetails.name}" | Phone: ${fullDetails.phone} | Website: ${fullDetails.website}`);
       fullDetails.source = 'bulk';
-      markCaptured(fullDetails.name);
       await mergeEntry(fullDetails);
 
       // Occasional long pause
@@ -781,10 +678,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ACTIVATE') {
     if (message.active) {
       initPassiveCapture();
-      isActiveListening = true;
     } else {
       stopPassiveCapture();
-      isActiveListening = false;
     }
     sendResponse({ success: true });
   } else if (message.type === 'BULK_SCRAPE') {

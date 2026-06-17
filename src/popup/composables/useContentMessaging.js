@@ -4,7 +4,6 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
   const isScraping = ref(false)
   const progress = ref({ done: 0, total: 0 })
   const activeKeyword = ref(null)
-  const pageListings = ref(new Set()) // placeIds currently on the page
 
   function sendToContentScript(message) {
     return new Promise((resolve, reject) => {
@@ -65,14 +64,10 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
         isScraping.value = false
         progress.value = { done: 0, total: 0 }
         activeKeyword.value = null
-        pageListings.value.clear()
         console.log(`[Popup] ✅ Scrape completed`)
       } else if (message.type === 'KEYWORD_ACTIVE') {
         activeKeyword.value = message.keyword
         console.log(`[Popup] 🔍 Active keyword: ${message.keyword}`)
-      } else if (message.type === 'PAGE_LISTINGS') {
-        pageListings.value = new Set(message.placeIds)
-        console.log(`[Popup] 📍 Page listings: ${message.placeIds.length} items`, message.placeIds.slice(0, 3))
       }
     }
 
@@ -87,11 +82,15 @@ export function useContentMessaging(onProgressCallback, onEntryCapture) {
     setupListener()
   })
 
+  onUnmounted(() => {
+    const cleanup = setupListener()
+    cleanup()
+  })
+
   return {
     isScraping,
     progress,
     activeKeyword,
-    pageListings,
     activate,
     bulkScrape,
     stopScrape,

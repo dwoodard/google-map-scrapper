@@ -20,8 +20,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
 const props = defineProps({
   keyword: String,
   count: Number,

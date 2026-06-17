@@ -282,24 +282,6 @@ function startPanelResize(e) {
   document.addEventListener('mouseup', handleMouseUp)
 }
 
-onMounted(async () => {
-  await storage.load()
-  const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
-  if (tab) {
-    messaging.loadCaptured()
-  }
-  // Auto-Capture is always on — enable passive listening by default
-  activeToggle.value = true
-  await messaging.activate(true)
-
-  // Initialize panel width
-  if (contentArea.value) {
-    contentArea.value.style.setProperty('--left-panel-width', panelWidth.value + '%')
-    // Reset scrollTop to prevent content from being pushed out of view
-    contentArea.value.scrollTop = 0
-  }
-})
-
 onUnmounted(() => {
   isResizingPanel = false
 })

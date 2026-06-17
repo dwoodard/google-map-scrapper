@@ -14,9 +14,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const props = defineProps({
-  onCleanDone: Function
-})
+const emit = defineEmits(['clean-done'])
 
 const isOpen = ref(false)
 
@@ -58,9 +56,7 @@ async function cleanDuplicates() {
 
     if (result > 0) {
       alert(`✓ Cleaned ${result} duplicate${result !== 1 ? 's' : ''}!\n\nYour data is now deduplicated.`)
-      if (props.onCleanDone) {
-        props.onCleanDone()
-      }
+      emit('clean-done')
     } else {
       alert('✓ No duplicates found! Your data is clean.')
     }
