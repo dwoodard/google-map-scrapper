@@ -16,7 +16,7 @@
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="🔍 Search by name, phone, website..."
+          placeholder="🔍 Search by name, category, phone, website..."
           class="search-input"
         />
       </div>
@@ -77,6 +77,12 @@
             <th class="sortable" @click="toggleSort('website')">
               Website <span v-if="sortColumn === 'website'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
+             <th class="sortable" @click="toggleSort('category')">
+              Category <span v-if="sortColumn === 'category'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
+            <th class="sortable" @click="toggleSort('capturedAt')">
+              Date Added <span v-if="sortColumn === 'capturedAt'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+            </th>
             <th class="sortable" @click="toggleSort('status')">
               Status <span v-if="sortColumn === 'status'" class="sort-icon">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
             </th>
@@ -126,6 +132,7 @@ const statusFilter = ref('all')
 const filteredTableData = computed(() => {
   let filtered = fuzzyFilter(tableData.value, searchQuery.value, [
     'name',
+    'category',
     'phone',
     'website',
     'address',
@@ -146,8 +153,19 @@ const filteredTableData = computed(() => {
   }
 
   return [...filtered].sort((a, b) => {
-    const aVal = String(a[sortColumn.value] || '').toLowerCase()
-    const bVal = String(b[sortColumn.value] || '').toLowerCase()
+    let aVal = a[sortColumn.value] || ''
+    let bVal = b[sortColumn.value] || ''
+
+    // Special handling for date comparisons
+    if (sortColumn.value === 'capturedAt') {
+      return sortDirection.value === 'asc'
+        ? new Date(aVal) - new Date(bVal)
+        : new Date(bVal) - new Date(aVal)
+    }
+
+    // String comparison for other fields
+    aVal = String(aVal).toLowerCase()
+    bVal = String(bVal).toLowerCase()
 
     let comparison = 0
     if (aVal < bVal) comparison = -1

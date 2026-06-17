@@ -14,6 +14,8 @@
       </a>
       <span v-else>-</span>
     </td>
+    <td :title="entry.category">{{ truncate(entry.category || 'N/A', 15) }}</td>
+    <td :title="formattedDate">{{ formattedDate }}</td>
     <td v-html="statusBadge"></td>
   </tr>
 
@@ -49,6 +51,16 @@ const website = computed(() => {
   if (!isValidUrl.value) return '-'
   try {
     return new URL(props.entry.website).hostname
+  } catch {
+    return '-'
+  }
+})
+
+const formattedDate = computed(() => {
+  if (!props.entry.capturedAt) return '-'
+  try {
+    const date = new Date(props.entry.capturedAt)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' })
   } catch {
     return '-'
   }
